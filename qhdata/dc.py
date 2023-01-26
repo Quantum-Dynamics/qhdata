@@ -62,6 +62,246 @@ class VIData:
         return VIData(self.voltage[indices], self.current[indices])
 
 
+class VI1Data:
+
+    @staticmethod
+    def load(
+        file_voltage: t.Union[str, Path],
+        file_current: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
+        save_npy: bool = True,
+    ) -> VI1Data:
+        return VI1Data(
+            load_raw_data(file_voltage, save_npy=save_npy),
+            load_raw_data(file_current, save_npy=save_npy),
+            load_raw_data(file_axis0, save_npy=save_npy),
+        )
+
+    def __init__(
+        self,
+        voltage: np.ndarray,
+        current: np.ndarray,
+        axis0: np.ndarray,
+    ) -> None:
+        self._voltage = voltage
+        self._current = current
+        self._axis0 = axis0
+
+    @property
+    def voltage(self) -> np.ndarray:
+        return self._voltage
+
+    @property
+    def current(self) -> np.ndarray:
+        return self._current
+
+    @property
+    def axis0(self) -> np.ndarray:
+        return self._axis0
+
+    @cached_property
+    def gradient_resistance(self) -> np.ndarray:
+        return np.apply_along_axis(
+            lambda cur: np.gradient(self.voltage, cur),
+            1,
+            self.current,
+        )
+
+    def remove_offset(self, point: float = 0., tol: float = 1e-6) -> VI1Data:
+        current_offset_removed = np.apply_along_axis(
+            lambda cur: _remove_offset_1axis(
+                cur,
+                self.voltage,
+                point=point,
+                tol=tol,
+            ),
+            1,
+            self.current,
+        )
+        return VI1Data(
+            self.voltage,
+            current_offset_removed,
+            self.axis0,
+        )
+
+    def crop_voltage(self, min_: float, max_: float) -> VI1Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.voltage, min_, max_)
+        return VI1Data(
+            self.voltage[indices],
+            self.current[:, indices],
+            self.axis0,
+        )
+
+    def crop_axis0(self, min_: float, max_: float) -> VI1Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis0, min_, max_)
+        return VI1Data(
+            self.voltage,
+            self.current[indices, :],
+            self.axis0,
+        )
+
+
+class IV1Data:
+
+    @staticmethod
+    def load(
+        file_current: t.Union[str, Path],
+        file_voltage: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
+        save_npy: bool = True,
+    ) -> IV1Data:
+        return IV1Data(
+            load_raw_data(file_current, save_npy=save_npy),
+            load_raw_data(file_voltage, save_npy=save_npy),
+            load_raw_data(file_axis0, save_npy=save_npy),
+        )
+
+    def __init__(
+        self,
+        current: np.ndarray,
+        voltage: np.ndarray,
+        axis0: np.ndarray,
+    ) -> None:
+        self._current = current
+        self._voltage = voltage
+        self._axis0 = axis0
+
+    @property
+    def current(self) -> np.ndarray:
+        return self._current
+
+    @property
+    def voltage(self) -> np.ndarray:
+        return self._voltage
+
+    @property
+    def axis0(self) -> np.ndarray:
+        return self._axis0
+
+    @cached_property
+    def gradient_resistance(self) -> np.ndarray:
+        return np.gradient(self.voltage, self.current, axis=1)
+
+    def crop_current(self, min_: float, max_: float) -> IV1Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.current, min_, max_)
+        return IV1Data(
+            self.current[indices],
+            self.voltage[:, indices],
+            self.axis0,
+        )
+
+    def crop_axis0(self, min_: float, max_: float) -> IV1Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis0, min_, max_)
+        return IV1Data(
+            self.current,
+            self.voltage[indices, :],
+            self.axis0[indices],
+        )
+
+
+class ConstVI1Data:
+
+    @staticmethod
+    def load(
+        voltage: t.Union[int, float],
+        file_current: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
+        save_npy: bool = True,
+    ) -> ConstVI1Data:
+        return ConstVI1Data(
+            voltage,
+            load_raw_data(file_current, save_npy=save_npy),
+            load_raw_data(file_axis0, save_npy=save_npy),
+        )
+
+    def __init__(
+        self,
+        voltage: t.Union[int, float],
+        current: np.ndarray,
+        axis0: np.ndarray,
+    ) -> None:
+        self._voltage = float(voltage)
+        self._current = current
+        self._axis0 = axis0
+
+    @property
+    def voltage(self) -> float:
+        return self._voltage
+
+    @property
+    def current(self) -> np.ndarray:
+        return self._current
+
+    @property
+    def axis0(self) -> np.ndarray:
+        return self._axis0
+
+    def crop_current(self, min_: float, max_: float) -> ConstVI1Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.current, min_, max_)
+        return ConstVI1Data(
+            self.voltage,
+            self.current[indices],
+            self.axis0[indices],
+        )
+
+    def crop_axis0(self, min_: float, max_: float) -> ConstVI1Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis0, min_, max_)
+        return ConstVI1Data(
+            self.voltage,
+            self.current[indices],
+            self.axis0[indices],
+        )
+
+
+class ConstIV1Data:
+
+    def __init__(
+        self,
+        current: t.Union[int, float],
+        voltage: np.ndarray,
+        axis0: np.ndarray,
+    ) -> None:
+        self._current = float(current)
+        self._voltage = voltage
+        self._axis0 = axis0
+
+    @property
+    def current(self) -> float:
+        return self._current
+
+    @property
+    def voltage(self) -> np.ndarray:
+        return self._voltage
+
+    @property
+    def axis0(self) -> np.ndarray:
+        return self._axis0
+
+    def crop_voltage(self, min_: float, max_: float) -> ConstIV1Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.voltage, min_, max_)
+        return ConstIV1Data(
+            self.current,
+            self.voltage[indices],
+            self.axis0[indices],
+        )
+
+    def crop_axis0(self, min_: float, max_: float) -> ConstIV1Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis0, min_, max_)
+        return ConstIV1Data(
+            self.current,
+            self.voltage[indices],
+            self.axis0[indices],
+        )
+
+
 class FETData:
 
     @staticmethod
