@@ -219,12 +219,18 @@ class SPDataBase(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def sum_counts_pixel(self, min_: int, max_: int) -> np.ndarray:
+    def sum_counts_pixel(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
         """Sum all counts up every axes in given range of pixels.
 
         Args:
             min_: Minimal pixel of the range.
             max_: Maximal pixel of the range.
+            normalize: `True` if the output is to be normalized.
 
         Returns:
             Ndarray of the sums.
@@ -232,12 +238,18 @@ class SPDataBase(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def sum_counts_wavelength(self, min_: float, max_: float) -> np.ndarray:
+    def sum_counts_wavelength(
+        self,
+        min_: float,
+        max_: float,
+        normalize: bool = False,
+    ) -> np.ndarray:
         """Sum all counts up every axes in given range of wavelength.
 
         Args:
             min_: Minimal wavelength of the range.
             max_: Maximal wavelength of the range.
+            normalize: `True` if the output is to be normalized.
 
         Returns:
             Ndarray of the sums.
@@ -245,12 +257,18 @@ class SPDataBase(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def sum_counts_energy(self, min_: float, max_: float) -> np.ndarray:
+    def sum_counts_energy(
+        self,
+        min_: float,
+        max_: float,
+        normalize: bool = False,
+    ) -> np.ndarray:
         """Sum all counts up every axes in given range of energy.
 
         Args:
             min_: Minimal energy of the range.
             max_: Maximal energy of the range.
+            normalize: `True` if the output is to be normalized.
 
         Returns:
             Ndarray of the sums.
@@ -375,15 +393,39 @@ class SPData(SPDataBase):
         indices = _get_matching_range(self.energy, min_, max_)
         return SPData(self.energy[indices], self.counts[indices])
 
-    def sum_counts_pixel(self, min_: int, max_: int) -> float:
+    def sum_counts_pixel(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> float:
         _check_min_max(min_, max_)
-        return np.sum(self.counts[min_:max_ + 1])
+        intensity = np.sum(self.counts[min_:max_ + 1])
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
-    def sum_counts_wavelength(self, min_: float, max_: float) -> float:
-        return np.sum(self.crop_wavelength(min_, max_).counts)
+    def sum_counts_wavelength(
+        self,
+        min_: float,
+        max_: float,
+        normalize: bool = False,
+    ) -> float:
+        intensity = np.sum(self.crop_wavelength(min_, max_).counts)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
-    def sum_counts_energy(self, min_: float, max_: float) -> float:
-        return np.sum(self.crop_energy(min_, max_).counts)
+    def sum_counts_energy(
+        self,
+        min_: float,
+        max_: float,
+        normalize: bool = False,
+    ) -> float:
+        intensity = np.sum(self.crop_energy(min_, max_).counts)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
 
 class SP1Data(SPDataBase):
@@ -572,15 +614,39 @@ class SP1Data(SPDataBase):
             self.axis1[indices],
         )
 
-    def sum_counts_pixel(self, min_: int, max_: int) -> np.ndarray:
+    def sum_counts_pixel(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
         _check_min_max(min_, max_)
-        return np.sum(self.counts[:, min_:max_ + 1], axis=1)
+        intensity = np.sum(self.counts[:, min_:max_ + 1], axis=1)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
-    def sum_counts_wavelength(self, min_: float, max_: float) -> np.ndarray:
-        return np.sum(self.crop_wavelength(min_, max_).counts, axis=1)
+    def sum_counts_wavelength(
+        self,
+        min_: float,
+        max_: float,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_wavelength(min_, max_).counts, axis=1)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
-    def sum_counts_energy(self, min_: float, max_: float) -> np.ndarray:
-        return np.sum(self.crop_energy(min_, max_).counts, axis=1)
+    def sum_counts_energy(
+        self,
+        min_: float,
+        max_: float,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_energy(min_, max_).counts, axis=1)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
 
 class SP2Data(SPDataBase):
@@ -781,14 +847,38 @@ class SP2Data(SPDataBase):
             self.axis2[indices],
         )
 
-    def sum_counts_pixel(self, min_: int, max_: int) -> np.ndarray:
-        return np.sum(self.crop_pixel(min_, max_).counts, axis=2)
+    def sum_counts_pixel(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_pixel(min_, max_).counts, axis=2)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
-    def sum_counts_wavelength(self, min_: int, max_: int) -> np.ndarray:
-        return np.sum(self.crop_wavelength(min_, max_).counts, axis=2)
+    def sum_counts_wavelength(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_wavelength(min_, max_).counts, axis=2)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
-    def sum_counts_energy(self, min_: int, max_: int) -> np.ndarray:
-        return np.sum(self.crop_energy(min_, max_).counts, axis=2)
+    def sum_counts_energy(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_energy(min_, max_).counts, axis=2)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
 
 
 class RSAData:
