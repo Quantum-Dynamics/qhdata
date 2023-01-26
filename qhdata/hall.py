@@ -137,7 +137,7 @@ class HallMagneticData(_HallData):
         return HallMagneticData(
             load_raw_data(file_Vxx, save_npy=save_npy),
             load_raw_data(file_Vxy, save_npy=save_npy),
-            file_magneticfield,
+            load_raw_data(file_magneticfield, save_npy=save_npy),
             Vref / resistance_ref,
             hallbar_ratio=hallbar_ratio,
         )
@@ -158,7 +158,7 @@ class HallMagneticData(_HallData):
         return HallMagneticData(
             load_raw_data(file_Vxx, save_npy=save_npy),
             np.empty_like(Vref),
-            file_magneticfield,
+            load_raw_data(file_magneticfield, save_npy=save_npy),
             Vref / resistance_ref,
             hallbar_ratio=hallbar_ratio,
         )
