@@ -1,7 +1,12 @@
 from .dc import (
     FETData,
-    HallData,
     VIData,
+)
+from .hall import (
+    HallGateData,
+    HallGateStatsData,
+    HallMagneticData,
+    HallMagneticStatsData,
 )
 from .hf import RSAData
 from .spactra import (
