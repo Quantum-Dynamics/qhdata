@@ -434,7 +434,7 @@ class SP1Data(SPDataBase):
     def load_with_energy(
         file_energy: t.Union[str, Path],
         file_counts: t.Union[str, Path],
-        file_axis1: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         save_npy: bool = True,
         load_npy: bool = True,
     ) -> SP1Data:
@@ -443,7 +443,7 @@ class SP1Data(SPDataBase):
         Args:
             file_energy: Path to a file with energy profile.
             file_counts: Path to a file with CCD data.
-            file_axis1: Path to a file with data of the axis 1.
+            file_axis0: Path to a file with data of the axis 1.
             save_npy: Whether the function creates new npy files from given
                 data.
 
@@ -457,14 +457,14 @@ class SP1Data(SPDataBase):
                 load_npy=load_npy,
             ),
             load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy),
-            load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy),
+            load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy),
         )
 
     @staticmethod
     def load_with_wavelength(
         file_wavelength: t.Union[str, Path],
         file_counts: t.Union[str, Path],
-        file_axis1: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         save_npy: bool = True,
         load_npy: bool = True,
     ) -> SP1Data:
@@ -473,7 +473,7 @@ class SP1Data(SPDataBase):
         Args:
             file_wavelength: Path to a file with wavelength profile.
             file_counts: Path to a file with CCD data.
-            file_axis1: Path to a file with data of the axis 1.
+            file_axis0: Path to a file with data of the axis 1.
             save_npy: Whether the function creates new npy files from given
                 data.
 
@@ -488,28 +488,28 @@ class SP1Data(SPDataBase):
         return SP1Data(
             convert_wavelength2energy(wavelength),
             load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy),
-            load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy),
+            load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy),
         )
 
     def __init__(
         self,
         energy: np.ndarray,
         counts: np.ndarray,
-        axis1: np.ndarray,
+        axis0: np.ndarray,
     ) -> None:
         """
         Args:
             energy: Energy profile of a measurement as a 1-D array.
             counts: 2-D array of CCD data.
-            axis1: 1-D array of the axis 1.
+            axis0: 1-D array of the axis 1.
         """
         super().__init__(energy, counts)
 
-        self._axis1 = axis1
+        self._axis0 = axis0
 
     @property
-    def axis1(self) -> np.ndarray:
-        return self._axis1
+    def axis0(self) -> np.ndarray:
+        return self._axis0
 
     @cached_property
     def peak_intensity(self) -> np.ndarray:
@@ -519,14 +519,14 @@ class SP1Data(SPDataBase):
         return SP1Data(
             self.energy,
             new_counts,
-            self.axis1,
+            self.axis0,
         )
 
     def update_counts_normalized_log(self) -> SP1Data:
         return self.update_counts(self.counts_log_normalized)
 
     def remove_darkcounts(self, darkcounts: int) -> SP1Data:
-        return SP1Data(self.energy, self.counts - darkcounts, self.axis1)
+        return SP1Data(self.energy, self.counts - darkcounts, self.axis0)
 
     def remove_cosmic_noise(self, threshold: int, closeness: int = 3) -> SP1Data:
         counts_cosmic_removed = np.apply_along_axis(
@@ -536,7 +536,7 @@ class SP1Data(SPDataBase):
             threshold,
             closeness,
         )
-        return SP1Data(self.energy, counts_cosmic_removed, self.axis1)
+        return SP1Data(self.energy, counts_cosmic_removed, self.axis0)
 
     def filter_gaussian_along_pixel(self, mean: float, std: float) -> SP1Data:
         gaussian = gaussian_dist(self.pixel, mean, std)
@@ -547,7 +547,7 @@ class SP1Data(SPDataBase):
             gaussian,
             mode="same",
         )
-        return SP1Data(self.energy, counts, self.axis1)
+        return SP1Data(self.energy, counts, self.axis0)
 
     def filter_gaussian_along_wavelength(
         self,
@@ -562,7 +562,7 @@ class SP1Data(SPDataBase):
             gaussian,
             mode="same",
         )
-        return SP1Data(self.energy, counts, self.axis1)
+        return SP1Data(self.energy, counts, self.axis0)
 
     def filter_gaussian_along_energy(
         self,
@@ -577,14 +577,14 @@ class SP1Data(SPDataBase):
             gaussian,
             mode="same",
         )
-        return SP1Data(self.energy, counts, self.axis1)
+        return SP1Data(self.energy, counts, self.axis0)
 
     def crop_pixel(self, min_: int, max_: int) -> SP1Data:
         _check_min_max(min_, max_)
         return SP1Data(
             self.energy[min_:max_ + 1],
             self.counts[:, min_:max_ + 1],
-            self.axis1,
+            self.axis0,
         )
 
     def crop_wavelength(self, min_: float, max_: float) -> SP1Data:
@@ -593,7 +593,7 @@ class SP1Data(SPDataBase):
         return SP1Data(
             self.energy[indices],
             self.counts[:, indices],
-            self.axis1,
+            self.axis0,
         )
 
     def crop_energy(self, min_: float, max_: float) -> SP1Data:
@@ -602,16 +602,16 @@ class SP1Data(SPDataBase):
         return SP1Data(
             self.energy[indices],
             self.counts[:, indices],
-            self.axis1,
+            self.axis0,
         )
 
-    def crop_axis1(self, min_: float, max_: float) -> SP1Data:
+    def crop_axis0(self, min_: float, max_: float) -> SP1Data:
         _check_min_max(min_, max_)
-        indices = _get_matching_range(self.axis1, min_, max_)
+        indices = _get_matching_range(self.axis0, min_, max_)
         return SP1Data(
             self.energy,
             self.counts[indices, :],
-            self.axis1[indices],
+            self.axis0[indices],
         )
 
     def sum_counts_pixel(
@@ -655,28 +655,28 @@ class SP2Data(SPDataBase):
     def load_with_energy(
         file_energy: t.Union[str, Path],
         file_counts: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         file_axis1: t.Union[str, Path],
-        file_axis2: t.Union[str, Path],
         save_npy: bool = True,
         load_npy: bool = True,
     ) -> SP2Data:
         energy = load_raw_data(file_energy, save_npy=save_npy, load_npy=load_npy)
         counts = load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy)
+        axis0 = load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy)
         axis1 = load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy)
-        axis2 = load_raw_data(file_axis2, save_npy=save_npy, load_npy=load_npy)
         return SP2Data(
             energy,
-            counts.reshape(len(axis2), len(axis1), len(energy)),
+            counts.reshape(len(axis0), len(axis1), len(energy)),
+            axis0,
             axis1,
-            axis2,
         )
 
     @staticmethod
     def load_with_wavelength(
         file_wavelength: t.Union[str, Path],
         file_counts: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         file_axis1: t.Union[str, Path],
-        file_axis2: t.Union[str, Path],
         save_npy: bool = True,
         load_npy: bool = True,
     ) -> SP2Data:
@@ -686,34 +686,34 @@ class SP2Data(SPDataBase):
             load_npy=load_npy,
         )
         counts = load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy)
+        axis0 = load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy)
         axis1 = load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy)
-        axis2 = load_raw_data(file_axis2, save_npy=save_npy, load_npy=load_npy)
         return SP2Data(
             convert_wavelength2energy(wavelength),
-            counts.reshape(len(axis2), len(axis1), len(wavelength)),
+            counts.reshape(len(axis0), len(axis1), len(wavelength)),
+            axis0,
             axis1,
-            axis2,
         )
 
     def __init__(
         self,
         energy: np.ndarray,
         counts: np.ndarray,
+        axis0: np.ndarray,
         axis1: np.ndarray,
-        axis2: np.ndarray,
     ) -> None:
         super().__init__(energy, counts)
 
+        self._axis0 = axis0
         self._axis1 = axis1
-        self._axis2 = axis2
+
+    @property
+    def axis0(self) -> np.ndarray:
+        return self._axis0
 
     @property
     def axis1(self) -> np.ndarray:
         return self._axis1
-
-    @property
-    def axis2(self) -> np.ndarray:
-        return self._axis2
 
     @cached_property
     def peak_intensity(self) -> np.ndarray:
@@ -723,8 +723,8 @@ class SP2Data(SPDataBase):
         return SP2Data(
             self.energy,
             new_counts,
+            self.axis0,
             self.axis1,
-            self.axis2,
         )
 
     def update_counts_normalized_log(self) -> SP2Data:
@@ -734,8 +734,8 @@ class SP2Data(SPDataBase):
         return SP2Data(
             self.energy,
             self.counts - darkcounts,
+            self.axis0,
             self.axis1,
-            self.axis2,
         )
 
     def remove_cosmic_noise(
@@ -753,8 +753,8 @@ class SP2Data(SPDataBase):
         return SP2Data(
             self.energy,
             counts_cosmic_removed,
+            self.axis0,
             self.axis1,
-            self.axis2,
         )
 
     def filter_gaussian_along_pixel(self, mean: float, std: float) -> SP2Data:
@@ -766,7 +766,7 @@ class SP2Data(SPDataBase):
             gaussian,
             mode="same",
         )
-        return SP2Data(self.energy, counts, self.axis1, self.axis2)
+        return SP2Data(self.energy, counts, self.axis0, self.axis1)
 
     def filter_gaussian_along_wavelength(
         self,
@@ -781,7 +781,7 @@ class SP2Data(SPDataBase):
             gaussian,
             mode="same",
         )
-        return SP2Data(self.energy, counts, self.axis1, self.axis2)
+        return SP2Data(self.energy, counts, self.axis0, self.axis1)
 
     def filter_gaussian_along_energy(
         self,
@@ -796,15 +796,15 @@ class SP2Data(SPDataBase):
             gaussian,
             mode="same",
         )
-        return SP2Data(self.energy, counts, self.axis1, self.axis2)
+        return SP2Data(self.energy, counts, self.axis0, self.axis1)
 
     def crop_pixel(self, min_: int, max_: int) -> SP2Data:
         _check_min_max(min_, max_)
         return SP2Data(
             self.energy[min_:max_ + 1],
             self.counts[:, :, min_:max_ + 1],
+            self.axis0,
             self.axis1,
-            self.axis2,
         )
 
     def crop_wavelength(self, min_: float, max_: float) -> SP2Data:
@@ -813,8 +813,8 @@ class SP2Data(SPDataBase):
         return SP2Data(
             self.energy[indices],
             self.counts[:, :, indices],
+            self.axis0,
             self.axis1,
-            self.axis2,
         )
 
     def crop_energy(self, min_: float, max_: float) -> SP2Data:
@@ -823,8 +823,18 @@ class SP2Data(SPDataBase):
         return SP2Data(
             self.energy[indices],
             self.counts[:, :, indices],
+            self.axis0,
             self.axis1,
-            self.axis2,
+        )
+
+    def crop_axis0(self, min_: float, max_: float) -> SP2Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis0, min_, max_)
+        return SP2Data(
+            self.energy,
+            self.counts[indices, :, :],
+            self.axis0[indices],
+            self.axis1,
         )
 
     def crop_axis1(self, min_: float, max_: float) -> SP2Data:
@@ -833,18 +843,8 @@ class SP2Data(SPDataBase):
         return SP2Data(
             self.energy,
             self.counts[:, indices, :],
+            self.axis0,
             self.axis1[indices],
-            self.axis2,
-        )
-
-    def crop_axis2(self, min_: float, max_: float) -> SP2Data:
-        _check_min_max(min_, max_)
-        indices = _get_matching_range(self.axis2, min_, max_)
-        return SP2Data(
-            self.energy,
-            self.counts[indices, :, :],
-            self.axis1,
-            self.axis2[indices],
         )
 
     def sum_counts_pixel(
