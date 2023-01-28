@@ -14,5 +14,7 @@ from .spactra import (
     SPDataBase,
     SP1Data,
     SP2Data,
+    SP3Data,
+    SP4Data,
 )
 from .util import load_raw_data

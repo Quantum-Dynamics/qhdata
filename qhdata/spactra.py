@@ -879,3 +879,492 @@ class SP2Data(SPDataBase):
         if normalize:
             return intensity / np.max(intensity)
         return intensity
+
+
+class SP3Data(SPDataBase):
+
+    def __init__(
+        self,
+        energy: np.ndarray,
+        counts: np.ndarray,
+        axis0: np.ndarray,
+        axis1: np.ndarray,
+        axis2: np.ndarray,
+    ) -> None:
+        super().__init__(energy, counts)
+
+        self._axis0 = axis0
+        self._axis1 = axis1
+        self._axis2 = axis2
+
+    @property
+    def axis0(self) -> np.ndarray:
+        return self._axis0
+
+    @property
+    def axis1(self) -> np.ndarray:
+        return self._axis1
+
+    @property
+    def axis2(self) -> np.ndarray:
+        return self._axis2
+
+    @cached_property
+    def peak_intensity(self) -> np.ndarray:
+        return np.max(self.counts, axis=3)
+
+    def update_counts(self, new_counts: np.ndarray) -> SP3Data:
+        return SP3Data(
+            self.energy,
+            new_counts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def update_counts_normalized_log(self) -> SP3Data:
+        return self.update_counts(self.counts_log_normalized)
+
+    def remove_darkcounts(self, darkcounts: int) -> SP3Data:
+        return SP3Data(
+            self.energy,
+            self.counts - darkcounts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def remove_cosmic_noise(
+        self,
+        threshold: int,
+        closeness: int = 3,
+    ) -> SP3Data:
+        counts_cosmic_removed = np.apply_along_axis(
+            smooth_outliers,
+            3,
+            self.counts,
+            threshold,
+            closeness,
+        )
+        return SP3Data(
+            self.energy,
+            counts_cosmic_removed,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def filter_gaussian_along_pixel(self, mean: float, std: float) -> SP3Data:
+        gaussian = gaussian_dist(self.pixel, mean, std)
+        counts = np.apply_along_axis(
+            np.convolve,
+            3,
+            self.counts,
+            gaussian,
+            mode="same",
+        )
+        return SP3Data(
+            self.energy,
+            counts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def filter_gaussian_along_wavelength(
+        self,
+        mean: float,
+        std: float,
+    ) -> SP3Data:
+        gaussian = gaussian_dist(self.wavelength, mean, std)
+        counts = np.apply_along_axis(
+            np.convolve,
+            3,
+            self.counts,
+            gaussian,
+            mode="same",
+        )
+        return SP3Data(
+            self.energy,
+            counts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def filter_gaussian_along_energy(
+        self,
+        mean: float,
+        std: float,
+    ) -> SP3Data:
+        gaussian = gaussian_dist(self.energy, mean, std)
+        counts = np.apply_along_axis(
+            np.convolve,
+            3,
+            self.counts,
+            gaussian,
+            mode="same",
+        )
+        return SP3Data(
+            self.energy,
+            counts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def crop_pixel(self, min_: int, max_: int) -> SP3Data:
+        _check_min_max(min_, max_)
+        return SP3Data(
+            self.energy[min_:max_ + 1],
+            self.counts[:, :, :, min_:max_ + 1],
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def crop_wavelength(self, min_: float, max_: float) -> SP3Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.wavelength, min_, max_)
+        return SP3Data(
+            self.energy[indices],
+            self.counts[:, :, :, indices],
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def crop_energy(self, min_: float, max_: float) -> SP3Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.energy, min_, max_)
+        return SP3Data(
+            self.energy[indices],
+            self.counts[:, :, :, indices],
+            self.axis0,
+            self.axis1,
+            self.axis2,
+        )
+
+    def crop_axis0(self, min_: float, max_: float) -> SP3Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis0, min_, max_)
+        return SP3Data(
+            self.energy,
+            self.counts[indices, :, :, :],
+            self.axis0[indices],
+            self.axis1,
+            self.axis2,
+        )
+
+    def crop_axis1(self, min_: float, max_: float) -> SP3Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis1, min_, max_)
+        return SP3Data(
+            self.energy,
+            self.counts[:, indices, :, :],
+            self.axis0,
+            self.axis1[indices],
+            self.axis2,
+        )
+
+    def crop_axis2(self, min_: float, max_: float) -> SP3Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis2, min_, max_)
+        return SP3Data(
+            self.energy,
+            self.counts[:, :, indices, :],
+            self.axis1,
+            self.axis2[indices],
+        )
+
+    def sum_counts_pixel(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_pixel(min_, max_).counts, axis=3)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
+
+    def sum_counts_wavelength(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_wavelength(min_, max_).counts, axis=3)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
+
+    def sum_counts_energy(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_energy(min_, max_).counts, axis=3)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
+
+
+class SP4Data(SPDataBase):
+
+    def __init__(
+        self,
+        energy: np.ndarray,
+        counts: np.ndarray,
+        axis0: np.ndarray,
+        axis1: np.ndarray,
+        axis2: np.ndarray,
+        axis3: np.ndarray,
+    ) -> None:
+        super().__init__(energy, counts)
+
+        self._axis0 = axis0
+        self._axis1 = axis1
+        self._axis2 = axis2
+        self._axis3 = axis3
+
+    @property
+    def axis0(self) -> np.ndarray:
+        return self._axis0
+
+    @property
+    def axis1(self) -> np.ndarray:
+        return self._axis1
+
+    @property
+    def axis2(self) -> np.ndarray:
+        return self._axis2
+
+    @property
+    def axis3(self) -> np.ndarray:
+        return self._axis3
+
+    @cached_property
+    def peak_intensity(self) -> np.ndarray:
+        return np.max(self.counts, axis=4)
+
+    def update_counts(self, new_counts: np.ndarray) -> SP4Data:
+        return SP4Data(
+            self.energy,
+            new_counts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def update_counts_normalized_log(self) -> SP4Data:
+        return self.update_counts(self.counts_log_normalized)
+
+    def remove_darkcounts(self, darkcounts: int) -> SP4Data:
+        return SP4Data(
+            self.energy,
+            self.counts - darkcounts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def remove_cosmic_noise(
+        self,
+        threshold: int,
+        closeness: int = 3,
+    ) -> SP4Data:
+        counts_cosmic_removed = np.apply_along_axis(
+            smooth_outliers,
+            4,
+            self.counts,
+            threshold,
+            closeness,
+        )
+        return SP4Data(
+            self.energy,
+            counts_cosmic_removed,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def filter_gaussian_along_pixel(self, mean: float, std: float) -> SP4Data:
+        gaussian = gaussian_dist(self.pixel, mean, std)
+        counts = np.apply_along_axis(
+            np.convolve,
+            4,
+            self.counts,
+            gaussian,
+            mode="same",
+        )
+        return SP4Data(
+            self.energy,
+            counts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def filter_gaussian_along_wavelength(
+        self,
+        mean: float,
+        std: float,
+    ) -> SP4Data:
+        gaussian = gaussian_dist(self.wavelength, mean, std)
+        counts = np.apply_along_axis(
+            np.convolve,
+            4,
+            self.counts,
+            gaussian,
+            mode="same",
+        )
+        return SP4Data(
+            self.energy,
+            counts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def filter_gaussian_along_energy(
+        self,
+        mean: float,
+        std: float,
+    ) -> SP4Data:
+        gaussian = gaussian_dist(self.energy, mean, std)
+        counts = np.apply_along_axis(
+            np.convolve,
+            4,
+            self.counts,
+            gaussian,
+            mode="same",
+        )
+        return SP4Data(
+            self.energy,
+            counts,
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def crop_pixel(self, min_: int, max_: int) -> SP4Data:
+        _check_min_max(min_, max_)
+        return SP4Data(
+            self.energy[min_:max_ + 1],
+            self.counts[:, :, :, :, min_:max_ + 1],
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def crop_wavelength(self, min_: float, max_: float) -> SP4Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.wavelength, min_, max_)
+        return SP4Data(
+            self.energy[indices],
+            self.counts[:, :, :, :, indices],
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def crop_energy(self, min_: float, max_: float) -> SP4Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.energy, min_, max_)
+        return SP4Data(
+            self.energy[indices],
+            self.counts[:, :, :, :, indices],
+            self.axis0,
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def crop_axis0(self, min_: float, max_: float) -> SP4Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis0, min_, max_)
+        return SP4Data(
+            self.energy,
+            self.counts[indices, :, :, :, :],
+            self.axis0[indices],
+            self.axis1,
+            self.axis2,
+            self.axis3,
+        )
+
+    def crop_axis1(self, min_: float, max_: float) -> SP4Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis1, min_, max_)
+        return SP4Data(
+            self.energy,
+            self.counts[:, indices, :, :, :],
+            self.axis0,
+            self.axis1[indices],
+            self.axis2,
+            self.axis3,
+        )
+
+    def crop_axis2(self, min_: float, max_: float) -> SP4Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis2, min_, max_)
+        return SP4Data(
+            self.energy,
+            self.counts[:, :, indices, :, :],
+            self.axis1,
+            self.axis2[indices],
+            self.axis3,
+        )
+
+    def crop_axis3(self, min_: float, max_: float) -> SP4Data:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(self.axis3, min_, max_)
+        return SP4Data(
+            self.energy,
+            self.counts[:, :, :, indices, :],
+            self.axis1,
+            self.axis2,
+            self.axis3[indices],
+        )
+
+    def sum_counts_pixel(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_pixel(min_, max_).counts, axis=4)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
+
+    def sum_counts_wavelength(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_wavelength(min_, max_).counts, axis=4)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
+
+    def sum_counts_energy(
+        self,
+        min_: int,
+        max_: int,
+        normalize: bool = False,
+    ) -> np.ndarray:
+        intensity = np.sum(self.crop_energy(min_, max_).counts, axis=4)
+        if normalize:
+            return intensity / np.max(intensity)
+        return intensity
