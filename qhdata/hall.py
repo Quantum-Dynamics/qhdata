@@ -737,6 +737,121 @@ class _HallStatsData:
 
 class HallMagneticStatsData(_HallStatsData):
 
+    @staticmethod
+    def load_with_Vref(
+        file_Vxx: t.Union[str, Path],
+        file_Vxy: t.Union[str, Path],
+        file_magneticfield: t.Union[str, Path],
+        file_Vref: t.Union[str, Path],
+        resistance_ref: t.Union[int, float],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallMagneticData:
+        if resistance_ref <= 0:
+            raise ValueError("'resistance_ref' must be a positive number.")
+
+        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        return HallMagneticData(
+            load_raw_data(file_Vxx, save_npy=save_npy),
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            Vref / resistance_ref,
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xx_with_Vref(
+        file_Vxx: t.Union[str, Path],
+        file_magneticfield: t.Union[str, Path],
+        file_Vref: t.Union[str, Path],
+        resistance_ref: float,
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallMagneticData:
+        if resistance_ref <= 0:
+            raise ValueError("'resistance_ref' must be a positive number.")
+
+        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        return HallMagneticData(
+            load_raw_data(file_Vxx, save_npy=save_npy),
+            np.empty_like(Vref),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            Vref / resistance_ref,
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xy_with_Vref(
+        file_Vxy: t.Union[str, Path],
+        file_magneticfield: t.Union[str, Path],
+        file_Vref: t.Union[str, Path],
+        resistance_ref: float,
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallMagneticData:
+        if resistance_ref <= 0:
+            raise ValueError("'resistance_ref' must be a positive number.")
+
+        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        return HallMagneticData(
+            np.empty_like(Vref),
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            Vref / resistance_ref,
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_with_Isd(
+        file_Vxx: t.Union[str, Path],
+        file_Vxy: t.Union[str, Path],
+        file_magneticfield: t.Union[str, Path],
+        file_Isd: t.Union[str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallMagneticData:
+        return HallMagneticData(
+            load_raw_data(file_Vxx, save_npy=save_npy),
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            load_raw_data(file_Isd, save_npy=save_npy),
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xx_with_Isd(
+        file_Vxx: t.Union[str, Path],
+        file_magneticfield: t.Union[str, Path],
+        file_Isd: t.Union[str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallMagneticData:
+        Isd = load_raw_data(file_Isd, save_npy=save_npy)
+        return HallMagneticData(
+            load_raw_data(file_Vxx, save_npy=save_npy),
+            np.empty_like(Isd),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            Isd,
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xy_with_Isd(
+        file_Vxy: t.Union[str, Path],
+        file_magneticfield: t.Union[str, Path],
+        file_Isd: t.Union[str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallMagneticData:
+        Isd = load_raw_data(file_Isd, save_npy=save_npy)
+        return HallMagneticData(
+            np.empty_like(Isd),
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            Isd,
+            hallbar_ratio=hallbar_ratio,
+        )
+
     def __init__(
         self,
         Vxx: np.ndarray,
@@ -785,6 +900,133 @@ class HallMagneticStatsData(_HallStatsData):
 
 
 class HallGateStatsData(_HallStatsData):
+
+    @staticmethod
+    def load_with_Vref(
+        file_Vxx: t.Union[str, Path],
+        file_Vxy: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_gate_voltage: t.Union[str, Path],
+        file_Vref: t.Union[str, Path],
+        resistance_ref: t.Union[int, float],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallGateData:
+        if resistance_ref <= 0:
+            raise ValueError("'resistance_ref' must be a positive number.")
+
+        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        return HallGateData(
+            load_raw_data(file_Vxx, save_npy=save_npy),
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            magneticfield,
+            load_raw_data(file_gate_voltage, save_npy=save_npy),
+            Vref / resistance_ref,
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xx_with_Vref(
+        file_Vxx: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_gate_voltage: t.Union[str, Path],
+        file_Vref: t.Union[str, Path],
+        resistance_ref: float,
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallGateData:
+        if resistance_ref <= 0:
+            raise ValueError("'resistance_ref' must be a positive number.")
+
+        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        return HallGateData(
+            load_raw_data(file_Vxx, save_npy=save_npy),
+            np.empty_like(Vref),
+            magneticfield,
+            load_raw_data(file_gate_voltage, save_npy=save_npy),
+            Vref / resistance_ref,
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xy_with_Vref(
+        file_Vxy: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_gate_voltage: t.Union[str, Path],
+        file_Vref: t.Union[str, Path],
+        resistance_ref: float,
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallGateData:
+        if resistance_ref <= 0:
+            raise ValueError("'resistance_ref' must be a positive number.")
+
+        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        return HallGateData(
+            np.empty_like(Vref),
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            magneticfield,
+            load_raw_data(file_gate_voltage, save_npy=save_npy),
+            Vref / resistance_ref,
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_with_Isd(
+        file_Vxx: t.Union[str, Path],
+        file_Vxy: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_gate_voltage: t.Union[str, Path],
+        file_Isd: t.Union[str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallGateData:
+        return HallGateData(
+            load_raw_data(file_Vxx, save_npy=save_npy),
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            magneticfield,
+            load_raw_data(file_gate_voltage, save_npy=save_npy),
+            load_raw_data(file_Isd, save_npy=save_npy),
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xx_with_Isd(
+        file_Vxx: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_gate_voltage: t.Union[str, Path],
+        file_Isd: t.Union[str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallGateData:
+        Isd = load_raw_data(file_Isd, save_npy=save_npy)
+        return HallGateData(
+            load_raw_data(file_Vxx, save_npy=save_npy),
+            np.empty_like(Isd),
+            magneticfield,
+            load_raw_data(file_gate_voltage, save_npy=save_npy),
+            Isd,
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xy_with_Isd(
+        file_Vxy: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_gate_voltage: t.Union[str, Path],
+        file_Isd: t.Union[str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> HallGateData:
+        Isd = load_raw_data(file_Isd, save_npy=save_npy)
+        return HallGateData(
+            np.empty_like(Isd),
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            magneticfield,
+            load_raw_data(file_gate_voltage, save_npy=save_npy),
+            Isd,
+            hallbar_ratio=hallbar_ratio,
+        )
 
     def __init__(
         self,
