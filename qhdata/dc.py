@@ -305,11 +305,19 @@ class FETData:
         file_current: t.Union[str, Path],
         file_gate_voltage: t.Union[str, Path],
         save_npy: bool = True,
+        voltage_auto_extension: bool = True,
     ) -> None:
+        voltage = load_raw_data(file_voltage, save_npy=save_npy)
+        current = load_raw_data(file_current, save_npy=save_npy)
+        gate_voltage = load_raw_data(file_gate_voltage, save_npy=save_npy)
+
+        if voltage.ndim == 1 and voltage_auto_extension:
+            voltage = np.array([voltage for _ in len(gate_voltage)])
+
         return FETData(
-            load_raw_data(file_voltage, save_npy=save_npy),
-            load_raw_data(file_current, save_npy=save_npy),
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
+            voltage,
+            current,
+            gate_voltage,
         )
 
     @staticmethod
