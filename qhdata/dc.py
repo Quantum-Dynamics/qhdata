@@ -51,15 +51,16 @@ class VIData:
         )
         return VIData(self.voltage, current_offset_removed)
 
-    def crop_voltage(self, min_: float, max_: float) -> VIData:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> VIData:
         _check_min_max(min_, max_)
-        indices = _get_matching_range(self.voltage, min_, max_)
+        indices = _get_matching_range(arr, min_, max_)
         return VIData(self.voltage[indices], self.current[indices])
 
+    def crop_voltage(self, min_: float, max_: float) -> VIData:
+        return self.crop_with(self.voltage, min_, max_)
+
     def crop_current(self, min_: float, max_: float) -> VIData:
-        _check_min_max(min_, max_)
-        indices = _get_matching_range(self.current, min_, max_)
-        return VIData(self.voltage[indices], self.current[indices])
+        return self.crop_with(self.current, min_, max_)
 
 
 class VI1Data:
@@ -240,23 +241,20 @@ class ConstVI1Data:
     def axis0(self) -> np.ndarray:
         return self._axis0
 
-    def crop_current(self, min_: float, max_: float) -> ConstVI1Data:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> ConstVI1Data:
         _check_min_max(min_, max_)
-        indices = _get_matching_range(self.current, min_, max_)
+        indices = _get_matching_range(arr, min_, max_)
         return ConstVI1Data(
             self.voltage,
             self.current[indices],
             self.axis0[indices],
         )
 
+    def crop_current(self, min_: float, max_: float) -> ConstVI1Data:
+        return self.crop_with(self.current, min_, max_)
+
     def crop_axis0(self, min_: float, max_: float) -> ConstVI1Data:
-        _check_min_max(min_, max_)
-        indices = _get_matching_range(self.axis0, min_, max_)
-        return ConstVI1Data(
-            self.voltage,
-            self.current[indices],
-            self.axis0[indices],
-        )
+        return self.crop_with(self.axis0, min_, max_)
 
 
 class ConstIV1Data:
@@ -283,23 +281,20 @@ class ConstIV1Data:
     def axis0(self) -> np.ndarray:
         return self._axis0
 
-    def crop_voltage(self, min_: float, max_: float) -> ConstIV1Data:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> ConstIV1Data:
         _check_min_max(min_, max_)
-        indices = _get_matching_range(self.voltage, min_, max_)
+        indices = _get_matching_range(arr, min_, max_)
         return ConstIV1Data(
             self.current,
             self.voltage[indices],
             self.axis0[indices],
         )
 
+    def crop_voltage(self, min_: float, max_: float) -> ConstIV1Data:
+        return self.crop_with(self.voltage, min_, max_)
+
     def crop_axis0(self, min_: float, max_: float) -> ConstIV1Data:
-        _check_min_max(min_, max_)
-        indices = _get_matching_range(self.axis0, min_, max_)
-        return ConstIV1Data(
-            self.current,
-            self.voltage[indices],
-            self.axis0[indices],
-        )
+        return self.crop_with(self.axis0, min_, max_)
 
 
 class FETData:

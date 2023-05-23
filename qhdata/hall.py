@@ -85,7 +85,7 @@ class _HallData:
     def mobility(self) -> np.ndarray:
         return self.rho_xy / (self.magneticfield * self.rho_xx)
 
-    def _crop(self, arr: np.ndarray, min_: float, max_: float) -> _HallData:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> _HallData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
 
@@ -103,19 +103,19 @@ class _HallData:
         )
 
     def crop_Vxx(self, min_: float, max_: float) -> _HallData:
-        return self._crop(self.Vxx, min_, max_)
+        return self.crop_with(self.Vxx, min_, max_)
 
     def crop_Vxy(self, min_: float, max_: float) -> _HallData:
-        return self._crop(self.Vxy, min_, max_)
+        return self.crop_with(self.Vxy, min_, max_)
 
     def crop_Isd(self, min_: float, max_: float) -> _HallData:
-        return self._crop(self.Isd, min_, max_)
+        return self.crop_with(self.Isd, min_, max_)
 
     def crop_Rxx(self, min_: float, max_: float) -> _HallData:
-        return self._crop(self.Rxx, min_, max_)
+        return self.crop_with(self.Rxx, min_, max_)
 
     def crop_Rxy(self, min_: float, max_: float) -> _HallData:
-        return self._crop(self.Rxy, min_, max_)
+        return self.crop_with(self.Rxy, min_, max_)
 
 
 class HallMagneticData(_HallData):
@@ -287,7 +287,7 @@ class HallMagneticData(_HallData):
             self.Isd,
         )
 
-    def _crop(self, arr: np.ndarray, min_: float, max_: float) -> HallMagneticData:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> HallMagneticData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return _HallData(
@@ -299,22 +299,22 @@ class HallMagneticData(_HallData):
         )
 
     def crop_Vxx(self, min_: float, max_: float) -> HallMagneticData:
-        return self._crop(self.Vxx, min_, max_)
+        return self.crop_with(self.Vxx, min_, max_)
 
     def crop_Vxy(self, min_: float, max_: float) -> HallMagneticData:
-        return self._crop(self.Vxy, min_, max_)
+        return self.crop_with(self.Vxy, min_, max_)
 
     def crop_Isd(self, min_: float, max_: float) -> HallMagneticData:
-        return self._crop(self.Isd, min_, max_)
+        return self.crop_with(self.Isd, min_, max_)
 
     def crop_Rxx(self, min_: float, max_: float) -> HallMagneticData:
-        return self._crop(self.Rxx, min_, max_)
+        return self.crop_with(self.Rxx, min_, max_)
 
     def crop_Rxy(self, min_: float, max_: float) -> HallMagneticData:
-        return self._crop(self.Rxy, min_, max_)
+        return self.crop_with(self.Rxy, min_, max_)
 
     def crop_magneticfield(self, min_: float, max_: float) -> HallMagneticData:
-        return self._crop(self.magneticfield, min_, max_)
+        return self.crop_with(self.magneticfield, min_, max_)
 
 
 class HallGateData(_HallData):
@@ -486,7 +486,7 @@ class HallGateData(_HallData):
     def gate_voltage(self) -> np.ndarray:
         return self._gate_voltage
 
-    def _crop(self, arr: np.ndarray, min_: float, max_: float) -> HallGateData:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> HallGateData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return HallGateData(
@@ -499,22 +499,22 @@ class HallGateData(_HallData):
         )
 
     def crop_Vxx(self, min_: float, max_: float) -> HallGateData:
-        return self._crop(self.Vxx, min_, max_)
+        return self.crop_with(self.Vxx, min_, max_)
 
     def crop_Vxy(self, min_: float, max_: float) -> HallGateData:
-        return self._crop(self.Vxy, min_, max_)
+        return self.crop_with(self.Vxy, min_, max_)
 
     def crop_Isd(self, min_: float, max_: float) -> HallGateData:
-        return self._crop(self.Isd, min_, max_)
+        return self.crop_with(self.Isd, min_, max_)
 
     def crop_Rxx(self, min_: float, max_: float) -> HallGateData:
-        return self._crop(self.Rxx, min_, max_)
+        return self.crop_with(self.Rxx, min_, max_)
 
     def crop_Rxy(self, min_: float, max_: float) -> HallGateData:
-        return self._crop(self.Rxy, min_, max_)
+        return self.crop_with(self.Rxy, min_, max_)
 
     def crop_gate_voltage(self, min_: float, max_: float) -> HallGateData:
-        return self._crop(self.gate_voltage, min_, max_)
+        return self.crop_with(self.gate_voltage, min_, max_)
 
     def calc_corrected_density(self, offset: HallGateData) -> np.ndarray:
         return self.magneticfield / (e * (self.rho_xy - offset.rho_xy))
@@ -702,7 +702,7 @@ class _HallStatsData:
             self.rho_xy_std,
         )
 
-    def _crop(self, arr: np.ndarray, min_: float, max_: float) -> _HallStatsData:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> _HallStatsData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
 
@@ -720,19 +720,19 @@ class _HallStatsData:
         )
 
     def crop_Vxx_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self._crop(self.Vxx_mean, min_, max_)
+        return self.crop_with(self.Vxx_mean, min_, max_)
 
     def crop_Vxy_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self._crop(self.Vxy_mean, min_, max_)
+        return self.crop_with(self.Vxy_mean, min_, max_)
 
     def crop_Isd_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self._crop(self.Isd_mean, min_, max_)
+        return self.crop_with(self.Isd_mean, min_, max_)
 
     def crop_Rxx_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self._crop(self.Rxx_mean, min_, max_)
+        return self.crop_with(self.Rxx_mean, min_, max_)
 
     def crop_Rxy_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self._crop(self.Rxy_mean, min_, max_)
+        return self.crop_with(self.Rxy_mean, min_, max_)
 
 
 class HallMagneticStatsData(_HallStatsData):
@@ -872,7 +872,7 @@ class HallMagneticStatsData(_HallStatsData):
     def magneticfield(self) -> np.ndarray:
         return self._magneticfield
 
-    def _crop(self, arr: np.ndarray, min_: float, max_: float) -> HallMagneticStatsData:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> HallMagneticStatsData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return HallMagneticStatsData(
@@ -884,19 +884,19 @@ class HallMagneticStatsData(_HallStatsData):
         )
 
     def crop_Vxx_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self._crop(self.Vxx_mean, min_, max_)
+        return self.crop_with(self.Vxx_mean, min_, max_)
 
     def crop_Vxy_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self._crop(self.Vxy_mean, min_, max_)
+        return self.crop_with(self.Vxy_mean, min_, max_)
 
     def crop_Isd_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self._crop(self.Isd_mean, min_, max_)
+        return self.crop_with(self.Isd_mean, min_, max_)
 
     def crop_Rxx_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self._crop(self.Rxx_mean, min_, max_)
+        return self.crop_with(self.Rxx_mean, min_, max_)
 
     def crop_Rxy_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self._crop(self.Rxy_mean, min_, max_)
+        return self.crop_with(self.Rxy_mean, min_, max_)
 
 
 class HallGateStatsData(_HallStatsData):
@@ -1068,7 +1068,7 @@ class HallGateStatsData(_HallStatsData):
     def gate_voltage(self) -> np.ndarray:
         return self._gate_voltage
 
-    def _crop(self, arr: np.ndarray, min_: float, max_: float) -> HallGateStatsData:
+    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> HallGateStatsData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return HallGateStatsData(
@@ -1081,22 +1081,22 @@ class HallGateStatsData(_HallStatsData):
         )
 
     def crop_Vxx_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self._crop(self.Vxx_mean, min_, max_)
+        return self.crop_with(self.Vxx_mean, min_, max_)
 
     def crop_Vxy_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self._crop(self.Vxy_mean, min_, max_)
+        return self.crop_with(self.Vxy_mean, min_, max_)
 
     def crop_Isd_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self._crop(self.Isd_mean, min_, max_)
+        return self.crop_with(self.Isd_mean, min_, max_)
 
     def crop_Rxx_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self._crop(self.Rxx_mean, min_, max_)
+        return self.crop_with(self.Rxx_mean, min_, max_)
 
     def crop_Rxy_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self._crop(self.Rxy_mean, min_, max_)
+        return self.crop_with(self.Rxy_mean, min_, max_)
 
     def crop_gate_voltage(self, min_: float, max_: float) -> HallGateStatsData:
-        return self._crop(self.gate_voltage, min_, max_)
+        return self.crop_with(self.gate_voltage, min_, max_)
 
     def calc_corrected_density_mean(self, offset: HallGateStatsData) -> np.ndarray:
         return self.calc_density_mean(
