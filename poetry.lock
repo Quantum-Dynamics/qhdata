@@ -251,6 +251,18 @@ importlib-metadata = {version = ">=4.4", markers = "python_version < \"3.10\""}
 testing = ["coverage", "pyyaml"]
 
 [[package]]
+name = "markdown-katex"
+version = "202112.1034"
+description = "katex extension for Python Markdown"
+category = "dev"
+optional = false
+python-versions = ">=2.7"
+
+[package.dependencies]
+Markdown = {version = ">=3.0", markers = "python_version >= \"3.6\""}
+pathlib2 = "*"
+
+[[package]]
 name = "markupsafe"
 version = "2.1.2"
 description = "Safely add untrusted strings to HTML/XML markup."
@@ -413,6 +425,17 @@ description = "Core utilities for Python packages"
 category = "main"
 optional = false
 python-versions = ">=3.7"
+
+[[package]]
+name = "pathlib2"
+version = "2.3.7.post1"
+description = "Object-oriented filesystem paths"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+six = "*"
 
 [[package]]
 name = "pillow"
@@ -704,7 +727,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "flake8 (<5)", "pytest-co
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8.1,<3.11"
-content-hash = "b140d2da8c5090fea49bddea25b562b874fb42287b039f025ef6e24e04928179"
+content-hash = "fcd8c85dc7c463efad783846f6b5f58cd77eea434f6ce15eef3ee79c56fcb396"
 
 [metadata.files]
 attrs = []
@@ -738,6 +761,7 @@ jinja2 = [
 ]
 kiwisolver = []
 markdown = []
+markdown-katex = []
 markupsafe = []
 matplotlib = []
 matplotlib-scalebar = []
@@ -754,6 +778,7 @@ mkdocstrings = []
 nodeenv = []
 numpy = []
 packaging = []
+pathlib2 = []
 pillow = []
 platformdirs = []
 pluggy = []

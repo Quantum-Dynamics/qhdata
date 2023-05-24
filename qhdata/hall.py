@@ -119,6 +119,7 @@ class _HallData:
 
 
 class HallMagneticData(_HallData):
+    """Data of Hall measurements sweeping magnetic field."""
 
     @staticmethod
     def load_with_Vref(
@@ -130,6 +131,23 @@ class HallMagneticData(_HallData):
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
+        """Load data with reference voltages that is to be converted to SD
+        currents.
+
+        Args:
+            file_Vxx: Path to a file of Vxx.
+            file_Vxy: Path to a file of Vxy.
+            file_magneticfield: Path to a file of magnetic field.
+            file_Vref: Path to a file of reference voltages.
+            resistance_ref: Value of a reference resistance.
+            hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
+                is valid only when the device is a Hall bar.
+            save_npy: Whether the function creates new npy files from given
+                data.
+
+        Returns:
+            `HallMagneticData` with loaded data.
+        """
         if resistance_ref <= 0:
             raise ValueError("'resistance_ref' must be a positive number.")
 
@@ -151,6 +169,27 @@ class HallMagneticData(_HallData):
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
+        """Load only Vxx data with reference voltages that is to be converted
+        to SD currents.
+
+        Args:
+            file_Vxx: Path to a file of Vxx.
+            file_magneticfield: Path to a file of magnetic field.
+            file_Vref: Path to a file of reference voltages.
+            resistance_ref: Value of a reference resistance.
+            hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
+                is valid only when the device is a Hall bar.
+            save_npy: Whether the function creates new npy files from given
+                data.
+
+        Returns:
+            `HallMagneticData` with loaded data.
+
+        Notes:
+            Returned `HallMagneticData` has Vxy data which can be referenced
+            at `HallMagneticData.Vxy`, but this arrray has no meaning data.
+            Thus Vxy data should not be referenced for analysis.
+        """
         if resistance_ref <= 0:
             raise ValueError("'resistance_ref' must be a positive number.")
 
@@ -172,6 +211,27 @@ class HallMagneticData(_HallData):
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
+        """Load only Vxy data with reference voltages that is to be converted
+        to SD currents.
+
+        Args:
+            file_Vxy: Path to a file of Vxx.
+            file_magneticfield: Path to a file of magnetic field.
+            file_Vref: Path to a file of reference voltages.
+            resistance_ref: Value of a reference resistance.
+            hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
+                is valid only when the device is a Hall bar.
+            save_npy: Whether the function creates new npy files from given
+                data.
+
+        Returns:
+            `HallMagneticData` with loaded data.
+
+        Notes:
+            Returned `HallMagneticData` has Vxx data which can be referenced
+            at `HallMagneticData.Vxx`, but this arrray has no meaning data.
+            Thus Vxx data should not be referenced for analysis.
+        """
         if resistance_ref <= 0:
             raise ValueError("'resistance_ref' must be a positive number.")
 
@@ -193,6 +253,21 @@ class HallMagneticData(_HallData):
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
+        """Load data with SD currents.
+
+        Args:
+            file_Vxx: Path to a file of Vxx.
+            file_Vxy: Path to a file of Vxx.
+            file_magneticfield: Path to a file of magnetic field.
+            file_Isd: Path to a file of SD currents.
+            hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
+                is valid only when the device is a Hall bar.
+            save_npy: Whether the function creates new npy files from given
+                data.
+
+        Returns:
+            `HallMagneticData` with loaded data.
+        """
         return HallMagneticData(
             load_raw_data(file_Vxx, save_npy=save_npy),
             load_raw_data(file_Vxy, save_npy=save_npy),
@@ -209,6 +284,25 @@ class HallMagneticData(_HallData):
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
+        """Load only Vxx data with SD currents.
+
+        Args:
+            file_Vxx: Path to a file of Vxx.
+            file_magneticfield: Path to a file of magnetic field.
+            file_Isd: Path to a file of SD currents.
+            hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
+                is valid only when the device is a Hall bar.
+            save_npy: Whether the function creates new npy files from given
+                data.
+
+        Returns:
+            `HallMagneticData` with loaded data.
+
+        Notes:
+            Returned `HallMagneticData` has Vxy data which can be referenced
+            at `HallMagneticData.Vxy`, but this arrray has no meaning data.
+            Thus Vxy data should not be referenced for analysis.
+        """
         Isd = load_raw_data(file_Isd, save_npy=save_npy)
         return HallMagneticData(
             load_raw_data(file_Vxx, save_npy=save_npy),
@@ -226,6 +320,25 @@ class HallMagneticData(_HallData):
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
+        """Load only Vxy data with SD currents.
+
+        Args:
+            file_Vxy: Path to a file of Vxy.
+            file_magneticfield: Path to a file of magnetic field.
+            file_Isd: Path to a file of SD currents.
+            hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
+                is valid only when the device is a Hall bar.
+            save_npy: Whether the function creates new npy files from given
+                data.
+
+        Returns:
+            `HallMagneticData` with loaded data.
+
+        Notes:
+            Returned `HallMagneticData` has Vxx data which can be referenced
+            at `HallMagneticData.Vxx`, but this arrray has no meaning data.
+            Thus Vxx data should not be referenced for analysis.
+        """
         Isd = load_raw_data(file_Isd, save_npy=save_npy)
         return HallMagneticData(
             np.empty_like(Isd),
@@ -267,6 +380,7 @@ class HallMagneticData(_HallData):
 
     @property
     def magneticfield(self) -> np.ndarray:
+        """Magnetic field in the measurement."""
         return self._magneticfield
 
     def remove_offset_xy(
@@ -274,6 +388,20 @@ class HallMagneticData(_HallData):
         point: float = 0.,
         tol: float = 1e-6,
     ) -> HallMagneticData:
+        """Remove offset of Vxy.
+
+        This method removes offset of Vxy at B = 0(T). This method can be used
+        when you want to eliminate the effect of residual magnetic field.
+
+        Args:
+            point: Magnetic field where offset exists. This value is zero in
+                general.
+            tol: Absolute tolerance of `point`. This method find the actual
+                offset point in the region [`point` - `tol`, `point` + `tol`].
+
+        Returns:
+            New `HallMagneticData` with Vxy whose offset is removed.
+        """
         Vxy_offset_removed = _remove_offset_1axis(
             self.Vxy,
             self.magneticfield,
@@ -299,21 +427,99 @@ class HallMagneticData(_HallData):
         )
 
     def crop_Vxx(self, min_: float, max_: float) -> HallMagneticData:
+        """Crop data with respect to Vxx.
+
+        This method crops Vxx data included in the region [`min_`, `max_`].
+        Other data like Vxy also is to be cropped so that they have same shape
+        of Vxx.
+
+        Args:
+            min_: minuite value of the crop window.
+            max_: max value of the crop window.
+
+        Returns:
+            New `HallMagneticData` with
+        """
         return self._crop(self.Vxx, min_, max_)
 
     def crop_Vxy(self, min_: float, max_: float) -> HallMagneticData:
+        """Crop data with respect to Vxy.
+
+        This method crops Vxy data included in the region [`min_`, `max_`].
+        Other data like Vxx also is to be cropped so that they have same shape
+        of Vxy.
+
+        Args:
+            min_: minuite value of the crop window.
+            max_: max value of the crop window.
+
+        Returns:
+            New `HallMagneticData` with
+        """
         return self._crop(self.Vxy, min_, max_)
 
     def crop_Isd(self, min_: float, max_: float) -> HallMagneticData:
+        """Crop data with respect to Isd.
+
+        This method crops Isd data included in the region [`min_`, `max_`].
+        Other data like Vxy also is to be cropped so that they have same shape
+        of Isd.
+
+        Args:
+            min_: minuite value of the crop window.
+            max_: max value of the crop window.
+
+        Returns:
+            New `HallMagneticData` with
+        """
         return self._crop(self.Isd, min_, max_)
 
     def crop_Rxx(self, min_: float, max_: float) -> HallMagneticData:
+        """Crop data with respect to Rxx.
+
+        This method crops Rxx data included in the region [`min_`, `max_`].
+        Other data like Rxy also is to be cropped so that they have same shape
+        of Rxx.
+
+        Args:
+            min_: minuite value of the crop window.
+            max_: max value of the crop window.
+
+        Returns:
+            New `HallMagneticData` with
+        """
         return self._crop(self.Rxx, min_, max_)
 
     def crop_Rxy(self, min_: float, max_: float) -> HallMagneticData:
+        """Crop data with respect to Rxy.
+
+        This method crops Rxy data included in the region [`min_`, `max_`].
+        Other data like Rxx also is to be cropped so that they have same shape
+        of Rxy.
+
+        Args:
+            min_: minuite value of the crop window.
+            max_: max value of the crop window.
+
+        Returns:
+            New `HallMagneticData` with
+        """
         return self._crop(self.Rxy, min_, max_)
 
     def crop_magneticfield(self, min_: float, max_: float) -> HallMagneticData:
+        """Crop data with respect to Vxx.
+
+        This method crops Vxx data included in the region [`min_`, `max_`].
+        Other data like Vxy also is to be cropped so that they have same shape
+        of Vxx.
+
+        Args:
+            min_: minuite value of the crop window.
+            max_: max value of the crop window.
+
+        Returns:
+            New `HallMagneticData` with
+        """
         return self._crop(self.magneticfield, min_, max_)
 
 
