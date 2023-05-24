@@ -312,7 +312,7 @@ class FETData:
         gate_voltage = load_raw_data(file_gate_voltage, save_npy=save_npy)
 
         if voltage.ndim == 1 and voltage_auto_extension:
-            voltage = np.array([voltage for _ in len(gate_voltage)])
+            voltage = np.array([voltage for _ in gate_voltage])
 
         return FETData(
             voltage,
