@@ -29,13 +29,9 @@ class _HallData:
     ) -> None:
         self._Vxx = Vxx
         self._Vxy = Vxy
+        self._magneticfield = magneticfield
         self._Isd = Isd
         self._hallbar_ratio = hallbar_ratio
-
-        if isinstance(magneticfield, float):
-            self._magneticfield = np.ones_like(self._Vxx) * magneticfield
-        else:
-            self._magneticfield = magneticfield
 
     @property
     def Vxx(self) -> np.ndarray:
