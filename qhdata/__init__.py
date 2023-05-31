@@ -18,3 +18,4 @@ from .spactra import (
     SP4Data,
 )
 from .util import load_raw_data
+from .vdp import VdpData
