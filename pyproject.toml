@@ -1,19 +1,17 @@
 [tool.poetry]
 name = "qhdata"
-version = "0.1.0"
+version = "0.1.1"
 description = "Utilities for data-driven analysis of experimental data."
 authors = ["Yunhyeon Jeong <yunhyon.jong.s3@dc.tohoku.ac.jp>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<3.11"
-matplotlib = "^3.4.3"
-matplotlib-scalebar = "^0.8.1"
-numpy = "^1.21.2"
-scipy = "^1.8.0"
+python = ">=3.8.1"
+numpy = "^1.21"
+scipy = "^1.8"
 
 [tool.poetry.dev-dependencies]
 invoke = "^2.0.0"
-flake8 = "^6.0.0"
+flake8 = "^6.1"
 pre-commit = "^3.1.1"
 pytest = "^7.2.2"
 mkdocs-material = "^9.1.3"
