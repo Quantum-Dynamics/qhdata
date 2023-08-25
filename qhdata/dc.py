@@ -440,3 +440,165 @@ class FETData:
             np.save(file_current, self.current)
         if file_gate_voltage is not None:
             np.save(file_gate_voltage, self.gate_voltage)
+
+
+class HysterisisVIData:
+
+    def __init__(self, voltage: np.ndarray, current: np.ndarray) -> None:
+        self._voltage = voltage
+        self._current = current
+
+    @property
+    def voltage(self) -> np.ndarray:
+        return self._voltage
+
+    @cached_property
+    def voltage_first_half(self) -> np.ndarray:
+        return self._voltage[0:len(self._voltage) // 2]
+
+    @cached_property
+    def voltage_latter_half(self) -> np.ndarray:
+        return self._voltage[len(self._voltage) // 2:]
+
+    @property
+    def current(self) -> np.ndarray:
+        return self._current
+
+    @cached_property
+    def current_first_half(self) -> np.ndarray:
+        return self._current[0:len(self._current) // 2]
+
+    @cached_property
+    def current_latter_half(self) -> np.ndarray:
+        return self._current[len(self._current) // 2:]
+
+    @cached_property
+    def gradient_resistance_first_half(self) -> np.ndarray:
+        return np.gradient(self.voltage_first_half, self.current_first_half)
+
+    @cached_property
+    def gradient_resistance_latter_half(self) -> np.ndarray:
+        return np.gradient(self.voltage_latter_half, self.current_latter_half)
+
+    def remove_offset(
+        self,
+        point: float = 0.,
+        tol: float = 1e-6,
+        first_half: bool = True,
+        latter_half: bool = True,
+    ) -> HysterisisVIData:
+        if first_half:
+            current_first_half = _remove_offset_1axis(
+                self.current_first_half,
+                self.voltage_first_half,
+                point=point,
+                tol=tol,
+            )
+        else:
+            current_first_half = self.current_first_half
+
+        if latter_half:
+            current_latter_half = _remove_offset_1axis(
+                self.current_latter_half,
+                self.voltage_latter_half,
+                point=point,
+                tol=tol,
+            )
+        else:
+            current_latter_half = self.current_latter_half
+
+        return HysterisisVIData(
+            self.voltage,
+            np.concatenate([current_first_half, current_latter_half]),
+        )
+
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> HysterisisVIData:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(arr, min_, max_)
+        return HysterisisVIData(
+            self.voltage[indices],
+            self.current[indices],
+        )
+
+    def crop_first_half_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> HysterisisVIData:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(arr, min_, max_)
+
+        voltage = np.concatenate([
+            self.voltage_first_half[indices],
+            self.voltage_latter_half,
+        ])
+        current = np.concatenate([
+            self.current_first_half[indices],
+            self.current_latter_half,
+        ])
+        return HysterisisVIData(voltage, current)
+
+    def crop_latter_half_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> HysterisisVIData:
+        _check_min_max(min_, max_)
+        indices = _get_matching_range(arr, min_, max_)
+
+        voltage = np.concatenate([
+            self.voltage_first_half,
+            self.voltage_latter_half[indices],
+        ])
+        current = np.concatenate([
+            self.current_first_half,
+            self.current_latter_half[indices],
+        ])
+        return HysterisisVIData(voltage, current)
+
+    def crop_voltage(self, min_: float, max_: float) -> HysterisisVIData:
+        return self.crop_with(self.voltage, min_, max_)
+
+    def crop_voltage_first_half(
+        self,
+        min_: float,
+        max_: float,
+    ) -> HysterisisVIData:
+        return self.crop_first_half_with(self.voltage, min_, max_)
+
+    def crop_voltage_latter_half(
+        self,
+        min_: float,
+        max_: float,
+    ) -> HysterisisVIData:
+        return self.crop_latter_half_with(self.voltage, min_, max_)
+
+    def crop_current(self, min_: float, max_: float) -> HysterisisVIData:
+        return self.crop_with(self.current, min_, max_)
+
+    def crop_current_first_half(
+        self,
+        min_: float,
+        max_: float,
+    ) -> HysterisisVIData:
+        return self.crop_first_half_with(self.current, min_, max_)
+
+    def crop_current_latter_half(
+        self,
+        min_: float,
+        max_: float,
+    ) -> HysterisisVIData:
+        return self.crop_latter_half_with(self.current, min_, max_)
+
+    def spawn_half_VIData(self) -> t.Tuple[VIData, VIData]:
+        return (
+            VIData(self.voltage_first_half, self.current_first_half),
+            VIData(self.voltage_latter_half, self.current_latter_half),
+        )
