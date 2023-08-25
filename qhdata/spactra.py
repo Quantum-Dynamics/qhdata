@@ -528,7 +528,11 @@ class SP1Data(SPDataBase):
     def remove_darkcounts(self, darkcounts: int) -> SP1Data:
         return SP1Data(self.energy, self.counts - darkcounts, self.axis0)
 
-    def remove_cosmic_noise(self, threshold: int, closeness: int = 3) -> SP1Data:
+    def remove_cosmic_noise(
+        self,
+        threshold: int,
+        closeness: int = 3,
+    ) -> SP1Data:
         counts_cosmic_removed = np.apply_along_axis(
             smooth_outliers,
             1,
@@ -660,8 +664,16 @@ class SP2Data(SPDataBase):
         save_npy: bool = True,
         load_npy: bool = True,
     ) -> SP2Data:
-        energy = load_raw_data(file_energy, save_npy=save_npy, load_npy=load_npy)
-        counts = load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy)
+        energy = load_raw_data(
+            file_energy,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
+        counts = load_raw_data(
+            file_counts,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
         axis0 = load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy)
         axis1 = load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy)
         return SP2Data(
@@ -685,7 +697,11 @@ class SP2Data(SPDataBase):
             save_npy=save_npy,
             load_npy=load_npy,
         )
-        counts = load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy)
+        counts = load_raw_data(
+            file_counts,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
         axis0 = load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy)
         axis1 = load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy)
         return SP2Data(
@@ -893,8 +909,16 @@ class SP3Data(SPDataBase):
         save_npy: bool = True,
         load_npy: bool = True,
     ) -> SP3Data:
-        energy = load_raw_data(file_energy, save_npy=save_npy, load_npy=load_npy)
-        counts = load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy)
+        energy = load_raw_data(
+            file_energy,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
+        counts = load_raw_data(
+            file_counts,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
         axis0 = load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy)
         axis1 = load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy)
         axis2 = load_raw_data(file_axis2, save_npy=save_npy, load_npy=load_npy)
@@ -921,13 +945,22 @@ class SP3Data(SPDataBase):
             save_npy=save_npy,
             load_npy=load_npy,
         )
-        counts = load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy)
+        counts = load_raw_data(
+            file_counts,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
         axis0 = load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy)
         axis1 = load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy)
         axis2 = load_raw_data(file_axis2, save_npy=save_npy, load_npy=load_npy)
         return SP3Data(
             convert_wavelength2energy(wavelength),
-            counts.reshape(len(axis0), len(axis1), len(axis2), len(wavelength)),
+            counts.reshape(
+                len(axis0),
+                len(axis1),
+                len(axis2),
+                len(wavelength),
+            ),
             axis0,
             axis1,
             axis2,
@@ -1174,8 +1207,16 @@ class SP4Data(SPDataBase):
         save_npy: bool = True,
         load_npy: bool = True,
     ) -> SP4Data:
-        energy = load_raw_data(file_energy, save_npy=save_npy, load_npy=load_npy)
-        counts = load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy)
+        energy = load_raw_data(
+            file_energy,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
+        counts = load_raw_data(
+            file_counts,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
         axis0 = load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy)
         axis1 = load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy)
         axis2 = load_raw_data(file_axis2, save_npy=save_npy, load_npy=load_npy)
@@ -1211,7 +1252,11 @@ class SP4Data(SPDataBase):
             save_npy=save_npy,
             load_npy=load_npy,
         )
-        counts = load_raw_data(file_counts, save_npy=save_npy, load_npy=load_npy)
+        counts = load_raw_data(
+            file_counts,
+            save_npy=save_npy,
+            load_npy=load_npy,
+        )
         axis0 = load_raw_data(file_axis0, save_npy=save_npy, load_npy=load_npy)
         axis1 = load_raw_data(file_axis1, save_npy=save_npy, load_npy=load_npy)
         axis2 = load_raw_data(file_axis2, save_npy=save_npy, load_npy=load_npy)

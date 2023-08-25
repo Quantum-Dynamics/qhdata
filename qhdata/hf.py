@@ -27,7 +27,12 @@ class RSAData:
             load_raw_data(file_rsa_freq, save_npy=save_npy),
         )
 
-    def __init__(self, freq: np.ndarray, rsa_dbm: np.ndarray, rsa_freq: np.ndarray) -> None:
+    def __init__(
+        self,
+        freq: np.ndarray,
+        rsa_dbm: np.ndarray,
+        rsa_freq: np.ndarray,
+    ) -> None:
         self._freq = freq
         self._rsa_dbm = rsa_dbm
         self._rsa_freq = rsa_freq
@@ -50,9 +55,12 @@ class RSAData:
 
     @cached_property
     def max_freq(self) -> np.ndarray:
+        rsa_freq = self._rsa_freq
+        rsa_dbm = self._rsa_dbm
+        max_dbm = self.max_dbm
         return np.array([
-            self._rsa_freq[i, np.where(self._rsa_dbm[i, :] == self.max_dbm[i])][0]
-            for i in range(len(self._rsa_freq))
+            rsa_freq[i, np.where(rsa_dbm[i, :] == max_dbm[i])][0]
+            for i in range(len(rsa_freq))
         ])
 
     @property
@@ -66,4 +74,8 @@ class RSAData:
     def crop_freq(self, min_: float, max_: float) -> RSAData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(self._freq, min_, max_)
-        return RSAData(self.freq[indices], self.rsa_dbm[indices, :], self.rsa_freq[indices, :])
+        return RSAData(
+            self.freq[indices],
+            self.rsa_dbm[indices, :],
+            self.rsa_freq[indices, :],
+        )

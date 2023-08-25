@@ -44,7 +44,7 @@ def load_raw_data(
 
 def _check_min_max(min_: float, max_: float) -> None:
     if min_ > max_:
-        raise ValueError(f"The argument 'min_' must bigger than 'max_'.")
+        raise ValueError("The argument 'min_' must bigger than 'max_'.")
 
 
 def _get_matching_range(
@@ -68,7 +68,8 @@ def _remove_offset_1axis(
     len_indices = len(offset_indices)
     if len_indices == 0:
         raise ValueError(
-            "Any offsets are not found. Please check the arguments 'point' and 'tol'."
+            "Any offsets are not found. Please check the arguments 'point' "
+            "and 'tol'."
         )
     if len_indices >= 2:
         raise ValueError(
@@ -90,7 +91,10 @@ def change_suffix(file: t.Union[str, Path], new_suffix: str) -> str:
     return os.path.join(file.parent, new_filename)
 
 
-def tie_neighbors(arr: t.Iterable[float], closeness: float) -> t.List[t.List[float]]:
+def tie_neighbors(
+    arr: t.Iterable[float],
+    closeness: float,
+) -> t.List[t.List[float]]:
     if not isinstance(arr, np.ndarray):
         arr = np.array(arr)
 

@@ -81,7 +81,12 @@ class _HallData:
     def mobility(self) -> np.ndarray:
         return self.rho_xy / (self.magneticfield * self.rho_xx)
 
-    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> _HallData:
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> _HallData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
 
@@ -411,7 +416,12 @@ class HallMagneticData(_HallData):
             self.Isd,
         )
 
-    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> HallMagneticData:
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> HallMagneticData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return _HallData(
@@ -688,7 +698,12 @@ class HallGateData(_HallData):
     def gate_voltage(self) -> np.ndarray:
         return self._gate_voltage
 
-    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> HallGateData:
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> HallGateData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return HallGateData(
@@ -723,8 +738,7 @@ class HallGateData(_HallData):
 
     def calc_corrected_mobility(self, offset: HallGateData) -> np.ndarray:
         return (
-            (self.rho_xy - offset.rho_xy) /
-            (self.magneticfield * self.rho_xx)
+            (self.rho_xy - offset.rho_xy) / (self.magneticfield * self.rho_xx)
         )
 
 
@@ -904,7 +918,12 @@ class _HallStatsData:
             self.rho_xy_std,
         )
 
-    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> _HallStatsData:
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> _HallStatsData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
 
@@ -1074,7 +1093,12 @@ class HallMagneticStatsData(_HallStatsData):
     def magneticfield(self) -> np.ndarray:
         return self._magneticfield
 
-    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> HallMagneticStatsData:
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> HallMagneticStatsData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return HallMagneticStatsData(
@@ -1270,7 +1294,12 @@ class HallGateStatsData(_HallStatsData):
     def gate_voltage(self) -> np.ndarray:
         return self._gate_voltage
 
-    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> HallGateStatsData:
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> HallGateStatsData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return HallGateStatsData(
@@ -1300,27 +1329,39 @@ class HallGateStatsData(_HallStatsData):
     def crop_gate_voltage(self, min_: float, max_: float) -> HallGateStatsData:
         return self.crop_with(self.gate_voltage, min_, max_)
 
-    def calc_corrected_density_mean(self, offset: HallGateStatsData) -> np.ndarray:
+    def calc_corrected_density_mean(
+        self,
+        offset: HallGateStatsData,
+    ) -> np.ndarray:
         return self.calc_density_mean(
             self.magneticfield,
             self.rho_xy_mean - offset.rho_xy_mean,
         )
 
-    def calc_corrected_density_std(self, offset: HallGateStatsData) -> np.ndarray:
+    def calc_corrected_density_std(
+        self,
+        offset: HallGateStatsData,
+    ) -> np.ndarray:
         return self.calc_density_std(
             self.magneticfield,
             self.rho_xy_mean - offset.rho_xy_mean,
             np.sqrt(self.rho_xy_std**2 + offset.rho_xy_std**2),
         )
 
-    def calc_corrected_mobility_mean(self, offset: HallGateStatsData) -> np.ndarray:
+    def calc_corrected_mobility_mean(
+        self,
+        offset: HallGateStatsData,
+    ) -> np.ndarray:
         return self.calc_mobility_mean(
             self.magneticfield,
             self.rho_xx_mean,
             self.rho_xy_mean - offset.rho_xy_mean,
         )
 
-    def calc_corrected_mobility_std(self, offset: HallGateStatsData) -> np.ndarray:
+    def calc_corrected_mobility_std(
+        self,
+        offset: HallGateStatsData,
+    ) -> np.ndarray:
         return self.calc_mobility_std(
             self.magneticfield,
             self.rho_xx_mean,

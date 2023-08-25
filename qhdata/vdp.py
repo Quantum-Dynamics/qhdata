@@ -121,7 +121,10 @@ class Vdp1Data:
     def initial_conductivity(self) -> float:
         return self._initial_conductivity
 
-    def set_initial_conductivity(self, initial_conductivity: float) -> Vdp1Data:
+    def set_initial_conductivity(
+        self,
+        initial_conductivity: float,
+    ) -> Vdp1Data:
         return Vdp1Data(
             self._Vcd,
             self._Vda,
