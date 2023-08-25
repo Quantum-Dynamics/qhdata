@@ -241,7 +241,12 @@ class ConstVI1Data:
     def axis0(self) -> np.ndarray:
         return self._axis0
 
-    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> ConstVI1Data:
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> ConstVI1Data:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return ConstVI1Data(
@@ -281,7 +286,12 @@ class ConstIV1Data:
     def axis0(self) -> np.ndarray:
         return self._axis0
 
-    def crop_with(self, arr: np.ndarray, min_: float, max_: float) -> ConstIV1Data:
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+    ) -> ConstIV1Data:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
         return ConstIV1Data(
