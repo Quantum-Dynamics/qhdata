@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qhdata"
-version = "0.1.1"
+version = "0.1.2"
 description = "Utilities for data-driven analysis of experimental data."
 authors = ["Yunhyeon Jeong <yunhyon.jong.s3@dc.tohoku.ac.jp>"]
 
