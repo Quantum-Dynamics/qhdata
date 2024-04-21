@@ -119,6 +119,67 @@ class _HallData:
         return self.crop_with(self.Rxy, min_, max_)
 
 
+def _load_magneticfield_current_with_Vref(
+    file_magneticfield: t.Union[str, Path],
+    data_Vref: t.Union[int, float, str, Path],
+    resistance_ref: t.Union[int, float],
+    save_npy: bool = True,
+) -> t.Tuple[np.ndarray, np.ndarray]:
+    """Load data with reference voltages and returns arrays of magnetic
+    field and SD current.
+
+    Args:
+        file_magneticfield: Path to a file of magnetic field.
+        data_Vref: Path to a file of reference voltages or a contant
+            value. If a constant value is given, an array of SD current
+            having same value of elements as `data_Vref` /
+            `resistance_ref` will be created.
+        resistance_ref: Value of a reference resistance.
+        save_npy: Whether the function creates new npy files from given
+            data.
+
+    Returns:
+        Arrays of magnetic field and SD current.
+    """
+    if resistance_ref <= 0:
+        raise ValueError("'resistance_ref' must be a positive number.")
+
+    magneticfield = load_raw_data(file_magneticfield, save_npy=save_npy)
+    if isinstance(data_Vref, (int, float)):
+        Vref = np.full_like(magneticfield, data_Vref)
+    else:
+        Vref = load_raw_data(data_Vref, save_npy=save_npy)
+
+    return (magneticfield, Vref / resistance_ref)
+
+
+def _load_magneticfield_current(
+    file_magneticfield: t.Union[str, Path],
+    data_Isd: t.Union[int, float, str, Path],
+    save_npy: bool = True,
+) -> t.Tuple[np.ndarray, np.ndarray]:
+    """Load data of magnetic field and SD current.
+
+    Args:
+        file_magneticfield: Path to a file of magnetic field.
+        data_Isd: Path to a file of SD current or a constant value.
+            If a constant value is given, an array of SD current having
+            same value of elements as the given value will be created.
+        save_npy: Whether the function creates new npy files from given
+            data.
+
+    Returns:
+        Arrays of magnetic field and SD current.
+    """
+    magneticfield = load_raw_data(file_magneticfield, save_npy=save_npy)
+    if isinstance(data_Isd, (int, float)):
+        Isd = np.full_like(magneticfield, data_Isd)
+    else:
+        Isd = load_raw_data(data_Isd, save_npy=save_npy)
+
+    return (magneticfield, Isd)
+
+
 class HallMagneticData(_HallData):
     """Data of Hall measurements sweeping magnetic field."""
 
@@ -127,7 +188,7 @@ class HallMagneticData(_HallData):
         file_Vxx: t.Union[str, Path],
         file_Vxy: t.Union[str, Path],
         file_magneticfield: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: t.Union[int, float],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
@@ -139,7 +200,10 @@ class HallMagneticData(_HallData):
             file_Vxx: Path to a file of Vxx.
             file_Vxy: Path to a file of Vxy.
             file_magneticfield: Path to a file of magnetic field.
-            file_Vref: Path to a file of reference voltages.
+            data_Vref: Path to a file of reference voltages or a contant
+                value. If a constant value is given, an array of SD current
+                having same value of elements as `data_Vref` /
+                `resistance_ref` will be created.
             resistance_ref: Value of a reference resistance.
             hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
                 is valid only when the device is a Hall bar.
@@ -149,15 +213,15 @@ class HallMagneticData(_HallData):
         Returns:
             `HallMagneticData` with loaded data.
         """
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
         return HallMagneticData(
             load_raw_data(file_Vxx, save_npy=save_npy),
             load_raw_data(file_Vxy, save_npy=save_npy),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Vref / resistance_ref,
+            *_load_magneticfield_current_with_Vref(
+                file_magneticfield,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -165,7 +229,7 @@ class HallMagneticData(_HallData):
     def load_xx_with_Vref(
         file_Vxx: t.Union[str, Path],
         file_magneticfield: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: float,
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
@@ -176,7 +240,10 @@ class HallMagneticData(_HallData):
         Args:
             file_Vxx: Path to a file of Vxx.
             file_magneticfield: Path to a file of magnetic field.
-            file_Vref: Path to a file of reference voltages.
+            data_Vref: Path to a file of reference voltages or a contant
+                value. If a constant value is given, an array of SD current
+                having same value of elements as `data_Vref` /
+                `resistance_ref` will be created.
             resistance_ref: Value of a reference resistance.
             hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
                 is valid only when the device is a Hall bar.
@@ -191,15 +258,16 @@ class HallMagneticData(_HallData):
             at `HallMagneticData.Vxy`, but this arrray has no meaning data.
             Thus Vxy data should not be referenced for analysis.
         """
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
         return HallMagneticData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            np.empty_like(Vref),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Vref / resistance_ref,
+            Vxx,
+            np.empty_like(Vxx),
+            *_load_magneticfield_current_with_Vref(
+                file_magneticfield,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -207,7 +275,7 @@ class HallMagneticData(_HallData):
     def load_xy_with_Vref(
         file_Vxy: t.Union[str, Path],
         file_magneticfield: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: float,
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
@@ -218,7 +286,10 @@ class HallMagneticData(_HallData):
         Args:
             file_Vxy: Path to a file of Vxx.
             file_magneticfield: Path to a file of magnetic field.
-            file_Vref: Path to a file of reference voltages.
+            data_Vref: Path to a file of reference voltages or a contant
+                value. If a constant value is given, an array of SD current
+                having same value of elements as `data_Vref` /
+                `resistance_ref` will be created.
             resistance_ref: Value of a reference resistance.
             hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
                 is valid only when the device is a Hall bar.
@@ -233,15 +304,16 @@ class HallMagneticData(_HallData):
             at `HallMagneticData.Vxx`, but this arrray has no meaning data.
             Thus Vxx data should not be referenced for analysis.
         """
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
         return HallMagneticData(
-            np.empty_like(Vref),
-            load_raw_data(file_Vxy, save_npy=save_npy),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Vref / resistance_ref,
+            np.empty_like(Vxy),
+            Vxy,
+            *_load_magneticfield_current_with_Vref(
+                file_magneticfield,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -250,7 +322,7 @@ class HallMagneticData(_HallData):
         file_Vxx: t.Union[str, Path],
         file_Vxy: t.Union[str, Path],
         file_magneticfield: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
@@ -260,7 +332,9 @@ class HallMagneticData(_HallData):
             file_Vxx: Path to a file of Vxx.
             file_Vxy: Path to a file of Vxx.
             file_magneticfield: Path to a file of magnetic field.
-            file_Isd: Path to a file of SD currents.
+            data_Isd: Path to a file of SD current or a constant value.
+                If a constant value is given, an array of SD current having
+                same value of elements as the given value will be created.
             hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
                 is valid only when the device is a Hall bar.
             save_npy: Whether the function creates new npy files from given
@@ -272,8 +346,11 @@ class HallMagneticData(_HallData):
         return HallMagneticData(
             load_raw_data(file_Vxx, save_npy=save_npy),
             load_raw_data(file_Vxy, save_npy=save_npy),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            load_raw_data(file_Isd, save_npy=save_npy),
+            *_load_magneticfield_current(
+                file_magneticfield,
+                data_Isd,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -281,7 +358,7 @@ class HallMagneticData(_HallData):
     def load_xx_with_Isd(
         file_Vxx: t.Union[str, Path],
         file_magneticfield: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
@@ -290,7 +367,9 @@ class HallMagneticData(_HallData):
         Args:
             file_Vxx: Path to a file of Vxx.
             file_magneticfield: Path to a file of magnetic field.
-            file_Isd: Path to a file of SD currents.
+            data_Isd: Path to a file of SD current or a constant value.
+                If a constant value is given, an array of SD current having
+                same value of elements as the given value will be created.
             hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
                 is valid only when the device is a Hall bar.
             save_npy: Whether the function creates new npy files from given
@@ -304,12 +383,15 @@ class HallMagneticData(_HallData):
             at `HallMagneticData.Vxy`, but this arrray has no meaning data.
             Thus Vxy data should not be referenced for analysis.
         """
-        Isd = load_raw_data(file_Isd, save_npy=save_npy)
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
         return HallMagneticData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            np.empty_like(Isd),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Isd,
+            Vxx,
+            np.empty_like(Vxx),
+            *_load_magneticfield_current(
+                file_magneticfield,
+                data_Isd,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -317,7 +399,7 @@ class HallMagneticData(_HallData):
     def load_xy_with_Isd(
         file_Vxy: t.Union[str, Path],
         file_magneticfield: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallMagneticData:
@@ -326,7 +408,9 @@ class HallMagneticData(_HallData):
         Args:
             file_Vxy: Path to a file of Vxy.
             file_magneticfield: Path to a file of magnetic field.
-            file_Isd: Path to a file of SD currents.
+            data_Isd: Path to a file of SD current or a constant value.
+                If a constant value is given, an array of SD current having
+                same value of elements as the given value will be created.
             hallbar_ratio: Ratio (width / length) of a Hallbar. This parameter
                 is valid only when the device is a Hall bar.
             save_npy: Whether the function creates new npy files from given
@@ -340,12 +424,15 @@ class HallMagneticData(_HallData):
             at `HallMagneticData.Vxx`, but this arrray has no meaning data.
             Thus Vxx data should not be referenced for analysis.
         """
-        Isd = load_raw_data(file_Isd, save_npy=save_npy)
+        Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
         return HallMagneticData(
-            np.empty_like(Isd),
-            load_raw_data(file_Vxy, save_npy=save_npy),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Isd,
+            np.empty_like(Vxy),
+            Vxy,
+            *_load_magneticfield_current(
+                file_magneticfield,
+                data_Isd,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -529,6 +616,62 @@ class HallMagneticData(_HallData):
         return self.crop_with(self.magneticfield, min_, max_)
 
 
+def _load_gate_voltage_current_with_Vref(
+    file_gate_voltage: t.Union[str, Path],
+    data_Vref: t.Union[int, float, str, Path],
+    resistance_ref: t.Union[int, float],
+    save_npy: bool = True,
+) -> t.Tuple[np.ndarray, np.ndarray]:
+    """Load data with reference voltages and returns arrays of gate
+    voltage and SD current.
+
+    Args:
+        file_gate_voltage: Path to a file of gate voltage.
+        data_Vref: Path to a file of reference voltages or a contant value.
+            If a constant value is given, an array of SD current having same
+            value of elements as `data_Vref` / `resistance_ref` will be
+            created.
+        resistance_ref: Value of a reference resistance.
+        save_npy: Whether the function creates new npy files from given data.
+
+    Returns:
+        Arrays of magnetic field and SD current.
+    """
+    # Same implementation
+    return _load_magneticfield_current_with_Vref(
+        file_gate_voltage,
+        data_Vref,
+        resistance_ref,
+        save_npy=save_npy,
+    )
+
+
+def _load_gate_voltage_current(
+    file_gate_voltage: t.Union[str, Path],
+    data_Isd: t.Union[int, float, str, Path],
+    save_npy: bool = True,
+) -> t.Tuple[np.ndarray, np.ndarray]:
+    """Load data with reference voltages and returns arrays of gate voltage
+    and SD current.
+
+    Args:
+        file_gate_voltage: Path to a file of gate voltage.
+        data_Isd: Path to a file of SD current or a contant value. If a
+            constant value is given, an array of SD current having same value
+            of elements as the given value will be created.
+        save_npy: Whether the function creates new npy files from given data.
+
+    Returns:
+        Arrays of magnetic field and SD current.
+    """
+    # Same implementation
+    return _load_magneticfield_current(
+        file_gate_voltage,
+        data_Isd,
+        save_npy=save_npy,
+    )
+
+
 class HallGateData(_HallData):
 
     @staticmethod
@@ -537,21 +680,21 @@ class HallGateData(_HallData):
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
         file_gate_voltage: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: t.Union[int, float],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallGateData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
         return HallGateData(
             load_raw_data(file_Vxx, save_npy=save_npy),
             load_raw_data(file_Vxy, save_npy=save_npy),
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Vref / resistance_ref,
+            *_load_gate_voltage_current_with_Vref(
+                file_gate_voltage,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -560,21 +703,22 @@ class HallGateData(_HallData):
         file_Vxx: t.Union[str, Path],
         magneticfield: t.Union[int, float],
         file_gate_voltage: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: float,
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallGateData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
         return HallGateData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            np.empty_like(Vref),
+            Vxx,
+            np.empty_like(Vxx),
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Vref / resistance_ref,
+            *_load_gate_voltage_current_with_Vref(
+                file_gate_voltage,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -583,21 +727,22 @@ class HallGateData(_HallData):
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
         file_gate_voltage: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: float,
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallGateData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
+        Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
         return HallGateData(
-            np.empty_like(Vref),
-            load_raw_data(file_Vxy, save_npy=save_npy),
+            np.empty_like(Vxy),
+            Vxy,
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Vref / resistance_ref,
+            *_load_gate_voltage_current_with_Vref(
+                file_gate_voltage,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -607,7 +752,7 @@ class HallGateData(_HallData):
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
         file_gate_voltage: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallGateData:
@@ -615,8 +760,11 @@ class HallGateData(_HallData):
             load_raw_data(file_Vxx, save_npy=save_npy),
             load_raw_data(file_Vxy, save_npy=save_npy),
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            load_raw_data(file_Isd, save_npy=save_npy),
+            *_load_gate_voltage_current(
+                file_gate_voltage,
+                data_Isd,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -625,17 +773,20 @@ class HallGateData(_HallData):
         file_Vxx: t.Union[str, Path],
         magneticfield: t.Union[int, float],
         file_gate_voltage: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallGateData:
-        Isd = load_raw_data(file_Isd, save_npy=save_npy)
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
         return HallGateData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            np.empty_like(Isd),
+            Vxx,
+            np.empty_like(Vxx),
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Isd,
+            *_load_gate_voltage_current(
+                file_gate_voltage,
+                data_Isd,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -644,17 +795,20 @@ class HallGateData(_HallData):
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
         file_gate_voltage: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
     ) -> HallGateData:
-        Isd = load_raw_data(file_Isd, save_npy=save_npy)
+        Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
         return HallGateData(
-            np.empty_like(Isd),
-            load_raw_data(file_Vxy, save_npy=save_npy),
+            np.empty_like(Vxy),
+            Vxy,
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Isd,
+            *_load_gate_voltage_current(
+                file_gate_voltage,
+                data_Isd,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
