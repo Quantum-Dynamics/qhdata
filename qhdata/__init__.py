@@ -3,10 +3,11 @@ from .dc import (
     VIData,
 )
 from .hall import (
-    HallGateData,
-    HallGateStatsData,
+    HallStats1Data,
+    Hall1Data,
+    Hall2Data,
+    Hall3Data,
     HallMagneticData,
-    HallMagneticStatsData,
 )
 from .hf import RSAData
 from .spactra import (

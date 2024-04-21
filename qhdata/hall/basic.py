@@ -5,11 +5,15 @@ import typing as t
 
 import numpy as np
 
-from .const import (
+from ._util import (
+    _load_Isd,
+    _load_Isd_with_Vref,
+)
+from ..const import (
     e,
     klitzing_constant,
 )
-from .util import (
+from ..util import (
     load_raw_data,
     _check_min_max,
     _get_matching_range,
@@ -81,104 +85,6 @@ class _HallData:
     def mobility(self) -> np.ndarray:
         return self.rho_xy / (self.magneticfield * self.rho_xx)
 
-    def crop_with(
-        self,
-        arr: np.ndarray,
-        min_: float,
-        max_: float,
-    ) -> _HallData:
-        _check_min_max(min_, max_)
-        indices = _get_matching_range(arr, min_, max_)
-
-        if isinstance(self.magneticfield, (int, float)):
-            magneticfield = self.magneticfield
-        else:
-            magneticfield = magneticfield[indices]
-
-        return _HallData(
-            self.Vxx[indices],
-            self.Vxy[indices],
-            magneticfield,
-            self.Isd[indices],
-            hallbar_ratio=self.hallbar_ratio,
-        )
-
-    def crop_Vxx(self, min_: float, max_: float) -> _HallData:
-        return self.crop_with(self.Vxx, min_, max_)
-
-    def crop_Vxy(self, min_: float, max_: float) -> _HallData:
-        return self.crop_with(self.Vxy, min_, max_)
-
-    def crop_Isd(self, min_: float, max_: float) -> _HallData:
-        return self.crop_with(self.Isd, min_, max_)
-
-    def crop_Rxx(self, min_: float, max_: float) -> _HallData:
-        return self.crop_with(self.Rxx, min_, max_)
-
-    def crop_Rxy(self, min_: float, max_: float) -> _HallData:
-        return self.crop_with(self.Rxy, min_, max_)
-
-
-def _load_magneticfield_current_with_Vref(
-    file_magneticfield: t.Union[str, Path],
-    data_Vref: t.Union[int, float, str, Path],
-    resistance_ref: t.Union[int, float],
-    save_npy: bool = True,
-) -> t.Tuple[np.ndarray, np.ndarray]:
-    """Load data with reference voltages and returns arrays of magnetic
-    field and SD current.
-
-    Args:
-        file_magneticfield: Path to a file of magnetic field.
-        data_Vref: Path to a file of reference voltages or a contant
-            value. If a constant value is given, an array of SD current
-            having same value of elements as `data_Vref` /
-            `resistance_ref` will be created.
-        resistance_ref: Value of a reference resistance.
-        save_npy: Whether the function creates new npy files from given
-            data.
-
-    Returns:
-        Arrays of magnetic field and SD current.
-    """
-    if resistance_ref <= 0:
-        raise ValueError("'resistance_ref' must be a positive number.")
-
-    magneticfield = load_raw_data(file_magneticfield, save_npy=save_npy)
-    if isinstance(data_Vref, (int, float)):
-        Vref = np.full_like(magneticfield, data_Vref)
-    else:
-        Vref = load_raw_data(data_Vref, save_npy=save_npy)
-
-    return (magneticfield, Vref / resistance_ref)
-
-
-def _load_magneticfield_current(
-    file_magneticfield: t.Union[str, Path],
-    data_Isd: t.Union[int, float, str, Path],
-    save_npy: bool = True,
-) -> t.Tuple[np.ndarray, np.ndarray]:
-    """Load data of magnetic field and SD current.
-
-    Args:
-        file_magneticfield: Path to a file of magnetic field.
-        data_Isd: Path to a file of SD current or a constant value.
-            If a constant value is given, an array of SD current having
-            same value of elements as the given value will be created.
-        save_npy: Whether the function creates new npy files from given
-            data.
-
-    Returns:
-        Arrays of magnetic field and SD current.
-    """
-    magneticfield = load_raw_data(file_magneticfield, save_npy=save_npy)
-    if isinstance(data_Isd, (int, float)):
-        Isd = np.full_like(magneticfield, data_Isd)
-    else:
-        Isd = load_raw_data(data_Isd, save_npy=save_npy)
-
-    return (magneticfield, Isd)
-
 
 class HallMagneticData(_HallData):
     """Data of Hall measurements sweeping magnetic field."""
@@ -213,11 +119,13 @@ class HallMagneticData(_HallData):
         Returns:
             `HallMagneticData` with loaded data.
         """
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
         return HallMagneticData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
+            Vxx,
             load_raw_data(file_Vxy, save_npy=save_npy),
-            *_load_magneticfield_current_with_Vref(
-                file_magneticfield,
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxx,
                 data_Vref,
                 resistance_ref,
                 save_npy=save_npy,
@@ -262,8 +170,9 @@ class HallMagneticData(_HallData):
         return HallMagneticData(
             Vxx,
             np.empty_like(Vxx),
-            *_load_magneticfield_current_with_Vref(
-                file_magneticfield,
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxx,
                 data_Vref,
                 resistance_ref,
                 save_npy=save_npy,
@@ -308,8 +217,9 @@ class HallMagneticData(_HallData):
         return HallMagneticData(
             np.empty_like(Vxy),
             Vxy,
-            *_load_magneticfield_current_with_Vref(
-                file_magneticfield,
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxy,
                 data_Vref,
                 resistance_ref,
                 save_npy=save_npy,
@@ -343,14 +253,12 @@ class HallMagneticData(_HallData):
         Returns:
             `HallMagneticData` with loaded data.
         """
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
         return HallMagneticData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
+            Vxx,
             load_raw_data(file_Vxy, save_npy=save_npy),
-            *_load_magneticfield_current(
-                file_magneticfield,
-                data_Isd,
-                save_npy=save_npy,
-            ),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            _load_Isd(Vxx, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -387,11 +295,8 @@ class HallMagneticData(_HallData):
         return HallMagneticData(
             Vxx,
             np.empty_like(Vxx),
-            *_load_magneticfield_current(
-                file_magneticfield,
-                data_Isd,
-                save_npy=save_npy,
-            ),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            _load_Isd(Vxx, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -428,11 +333,8 @@ class HallMagneticData(_HallData):
         return HallMagneticData(
             np.empty_like(Vxy),
             Vxy,
-            *_load_magneticfield_current(
-                file_magneticfield,
-                data_Isd,
-                save_npy=save_npy,
-            ),
+            load_raw_data(file_magneticfield, save_npy=save_npy),
+            _load_Isd(Vxy, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -511,7 +413,7 @@ class HallMagneticData(_HallData):
     ) -> HallMagneticData:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
-        return _HallData(
+        return HallMagneticData(
             self.Vxx[indices],
             self.Vxy[indices],
             self.magneticfield[indices],
@@ -616,81 +518,27 @@ class HallMagneticData(_HallData):
         return self.crop_with(self.magneticfield, min_, max_)
 
 
-def _load_gate_voltage_current_with_Vref(
-    file_gate_voltage: t.Union[str, Path],
-    data_Vref: t.Union[int, float, str, Path],
-    resistance_ref: t.Union[int, float],
-    save_npy: bool = True,
-) -> t.Tuple[np.ndarray, np.ndarray]:
-    """Load data with reference voltages and returns arrays of gate
-    voltage and SD current.
-
-    Args:
-        file_gate_voltage: Path to a file of gate voltage.
-        data_Vref: Path to a file of reference voltages or a contant value.
-            If a constant value is given, an array of SD current having same
-            value of elements as `data_Vref` / `resistance_ref` will be
-            created.
-        resistance_ref: Value of a reference resistance.
-        save_npy: Whether the function creates new npy files from given data.
-
-    Returns:
-        Arrays of magnetic field and SD current.
-    """
-    # Same implementation
-    return _load_magneticfield_current_with_Vref(
-        file_gate_voltage,
-        data_Vref,
-        resistance_ref,
-        save_npy=save_npy,
-    )
-
-
-def _load_gate_voltage_current(
-    file_gate_voltage: t.Union[str, Path],
-    data_Isd: t.Union[int, float, str, Path],
-    save_npy: bool = True,
-) -> t.Tuple[np.ndarray, np.ndarray]:
-    """Load data with reference voltages and returns arrays of gate voltage
-    and SD current.
-
-    Args:
-        file_gate_voltage: Path to a file of gate voltage.
-        data_Isd: Path to a file of SD current or a contant value. If a
-            constant value is given, an array of SD current having same value
-            of elements as the given value will be created.
-        save_npy: Whether the function creates new npy files from given data.
-
-    Returns:
-        Arrays of magnetic field and SD current.
-    """
-    # Same implementation
-    return _load_magneticfield_current(
-        file_gate_voltage,
-        data_Isd,
-        save_npy=save_npy,
-    )
-
-
-class HallGateData(_HallData):
+class Hall1Data(_HallData):
 
     @staticmethod
     def load_with_Vref(
         file_Vxx: t.Union[str, Path],
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         data_Vref: t.Union[int, float, str, Path],
         resistance_ref: t.Union[int, float],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
-        return HallGateData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
+    ) -> Hall1Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall1Data(
+            Vxx,
             load_raw_data(file_Vxy, save_npy=save_npy),
             magneticfield,
-            *_load_gate_voltage_current_with_Vref(
-                file_gate_voltage,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxx,
                 data_Vref,
                 resistance_ref,
                 save_npy=save_npy,
@@ -702,19 +550,20 @@ class HallGateData(_HallData):
     def load_xx_with_Vref(
         file_Vxx: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         data_Vref: t.Union[int, float, str, Path],
         resistance_ref: float,
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
+    ) -> Hall1Data:
         Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
-        return HallGateData(
+        return Hall1Data(
             Vxx,
             np.empty_like(Vxx),
             magneticfield,
-            *_load_gate_voltage_current_with_Vref(
-                file_gate_voltage,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxx,
                 data_Vref,
                 resistance_ref,
                 save_npy=save_npy,
@@ -726,19 +575,20 @@ class HallGateData(_HallData):
     def load_xy_with_Vref(
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         data_Vref: t.Union[int, float, str, Path],
         resistance_ref: float,
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
+    ) -> Hall1Data:
         Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
-        return HallGateData(
+        return Hall1Data(
             np.empty_like(Vxy),
             Vxy,
             magneticfield,
-            *_load_gate_voltage_current_with_Vref(
-                file_gate_voltage,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxy,
                 data_Vref,
                 resistance_ref,
                 save_npy=save_npy,
@@ -751,20 +601,18 @@ class HallGateData(_HallData):
         file_Vxx: t.Union[str, Path],
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
-        return HallGateData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
+    ) -> Hall1Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall1Data(
+            Vxx,
             load_raw_data(file_Vxy, save_npy=save_npy),
             magneticfield,
-            *_load_gate_voltage_current(
-                file_gate_voltage,
-                data_Isd,
-                save_npy=save_npy,
-            ),
+            load_raw_data(file_axis0, save_npy=save_npy),
+            _load_Isd(Vxx, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -772,21 +620,18 @@ class HallGateData(_HallData):
     def load_xx_with_Isd(
         file_Vxx: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
+    ) -> Hall1Data:
         Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
-        return HallGateData(
+        return Hall1Data(
             Vxx,
             np.empty_like(Vxx),
             magneticfield,
-            *_load_gate_voltage_current(
-                file_gate_voltage,
-                data_Isd,
-                save_npy=save_npy,
-            ),
+            load_raw_data(file_axis0, save_npy=save_npy),
+            _load_Isd(Vxx, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -794,21 +639,18 @@ class HallGateData(_HallData):
     def load_xy_with_Isd(
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
         data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
+    ) -> Hall1Data:
         Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
-        return HallGateData(
+        return Hall1Data(
             np.empty_like(Vxy),
             Vxy,
             magneticfield,
-            *_load_gate_voltage_current(
-                file_gate_voltage,
-                data_Isd,
-                save_npy=save_npy,
-            ),
+            load_raw_data(file_axis0, save_npy=save_npy),
+            _load_Isd(Vxy, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -817,23 +659,23 @@ class HallGateData(_HallData):
         Vxx: np.ndarray,
         Vxy: np.ndarray,
         magneticfield: t.Union[int, float],
-        gate_voltage: np.ndarray,
+        axis0: np.ndarray,
         Isd: np.ndarray,
         hallbar_ratio: float = 0.25,
     ) -> None:
         """
         Args:
-            Vxx: Ndarray for Vxx.
-            Vxy: Ndarray for Vxy.
-            magneticfield: Ndarray for magnetic field.
-            Isd: Ndarray for source-drain current.
+            Vxx: 1-D array of Vxx.
+            Vxy: 1-D array of Vxy.
+            magneticfield: a constant value of magnetic field.
+            axis0: 1-D array of the axis 0.
+            Isd: 1-D array of source-drain current.
             hallbar_ratio: Ratio (width / length) of a Hallbar.
 
         Notes:
-            All ndarray object must have same dimension and size.
-            `hallbar_ratio` needn't be substituted if your device
-            is not a Hallbar, but in this case, values of mobility
-            doesn't have meaning.
+            `hallbar_ratio` is not needed to be substituted if your device
+            is not a Hallbar, but in that case, values of mobility doesn't
+            have meaning.
         """
         super().__init__(
             Vxx,
@@ -842,512 +684,141 @@ class HallGateData(_HallData):
             Isd,
             hallbar_ratio=hallbar_ratio,
         )
-        self._gate_voltage = gate_voltage
+        self._axis0 = axis0
 
-    @property
+    @cached_property
     def magneticfield(self) -> float:
-        return self._magneticfield
+        return float(self._magneticfield)
 
     @property
-    def gate_voltage(self) -> np.ndarray:
-        return self._gate_voltage
+    def axis0(self) -> np.ndarray:
+        return self._axis0
 
     def crop_with(
         self,
         arr: np.ndarray,
         min_: float,
         max_: float,
-    ) -> HallGateData:
+    ) -> Hall1Data:
         _check_min_max(min_, max_)
         indices = _get_matching_range(arr, min_, max_)
-        return HallGateData(
+        return Hall1Data(
             self.Vxx[indices],
             self.Vxy[indices],
             self.magneticfield,
-            self.gate_voltage[indices],
+            self.axis0[indices],
             self.Isd[indices],
             self.hallbar_ratio,
         )
 
-    def crop_Vxx(self, min_: float, max_: float) -> HallGateData:
+    def crop_Vxx(self, min_: float, max_: float) -> Hall1Data:
         return self.crop_with(self.Vxx, min_, max_)
 
-    def crop_Vxy(self, min_: float, max_: float) -> HallGateData:
+    def crop_Vxy(self, min_: float, max_: float) -> Hall1Data:
         return self.crop_with(self.Vxy, min_, max_)
 
-    def crop_Isd(self, min_: float, max_: float) -> HallGateData:
+    def crop_Isd(self, min_: float, max_: float) -> Hall1Data:
         return self.crop_with(self.Isd, min_, max_)
 
-    def crop_Rxx(self, min_: float, max_: float) -> HallGateData:
+    def crop_Rxx(self, min_: float, max_: float) -> Hall1Data:
         return self.crop_with(self.Rxx, min_, max_)
 
-    def crop_Rxy(self, min_: float, max_: float) -> HallGateData:
+    def crop_Rxy(self, min_: float, max_: float) -> Hall1Data:
         return self.crop_with(self.Rxy, min_, max_)
 
-    def crop_gate_voltage(self, min_: float, max_: float) -> HallGateData:
-        return self.crop_with(self.gate_voltage, min_, max_)
+    def crop_axis0(self, min_: float, max_: float) -> Hall1Data:
+        return self.crop_with(self.axis0, min_, max_)
 
-    def calc_corrected_density(self, offset: HallGateData) -> np.ndarray:
+    def calc_corrected_density(self, offset: Hall1Data) -> np.ndarray:
         return self.magneticfield / (e * (self.rho_xy - offset.rho_xy))
 
-    def calc_corrected_mobility(self, offset: HallGateData) -> np.ndarray:
+    def calc_corrected_mobility(self, offset: Hall1Data) -> np.ndarray:
         return (
             (self.rho_xy - offset.rho_xy) / (self.magneticfield * self.rho_xx)
         )
 
 
-class _HallStatsData:
-
-    def __init__(
-        self,
-        Vxx: np.ndarray,
-        Vxy: np.ndarray,
-        magneticfield: t.Union[np.ndarray, int, float],
-        Isd: np.ndarray,
-        hallbar_ratio: float = 0.25,
-    ) -> None:
-        self._Vxx = Vxx
-        self._Vxy = Vxy
-        self._Isd = Isd
-        self._hallbar_ratio = hallbar_ratio
-
-        if isinstance(magneticfield, (int, float)):
-            self._magneticfield = np.ones_like(self._Vxx) * magneticfield
-        else:
-            self._magneticfield = magneticfield
-
-    @property
-    def Vxx(self) -> np.ndarray:
-        return self._Vxx
-
-    @cached_property
-    def Vxx_mean(self) -> np.ndarray:
-        return np.mean(self.Vxx, axis=1)
-
-    @cached_property
-    def Vxx_std(self) -> np.ndarray:
-        return np.std(self.Vxx, axis=1)
-
-    @property
-    def Vxy(self) -> np.ndarray:
-        return self._Vxy
-
-    @cached_property
-    def Vxy_mean(self) -> np.ndarray:
-        return np.mean(self.Vxy, axis=1)
-
-    @cached_property
-    def Vxy_std(self) -> np.ndarray:
-        return np.std(self.Vxy, axis=1)
-
-    @property
-    def magneticfield(self) -> t.Union[np.ndarray, int, float]:
-        return self._magneticfield
-
-    @property
-    def hallbar_ratio(self) -> float:
-        return self._hallbar_ratio
-
-    @property
-    def Isd(self) -> np.ndarray:
-        return self._Isd
-
-    @cached_property
-    def Isd_mean(self) -> np.ndarray:
-        return np.mean(self.Isd, axis=1)
-
-    @cached_property
-    def Isd_std(self) -> np.ndarray:
-        return np.std(self.Isd, axis=1)
-
-    @cached_property
-    def Rxx_mean(self) -> np.ndarray:
-        return self.Vxx_mean / self.Isd_mean
-
-    @cached_property
-    def Rxx_std(self) -> np.ndarray:
-        return np.sqrt(
-            (self.Vxx_std / self.Isd_mean)**2 +
-            ((self.Vxx_mean / self.Isd_mean**2) * self.Isd_std)**2
-        )
-
-    @cached_property
-    def rho_xx_mean(self) -> np.ndarray:
-        return self.Rxx_mean * self.hallbar_ratio
-
-    @cached_property
-    def rho_xx_std(self) -> np.ndarray:
-        return self.Rxx_std * self.hallbar_ratio
-
-    @cached_property
-    def Rxy_mean(self) -> np.ndarray:
-        return self.Vxy_mean / self.Isd_mean
-
-    @cached_property
-    def Rxy_std(self) -> np.ndarray:
-        return np.sqrt(
-            (self.Vxy_std / self.Isd_mean)**2 +
-            ((self.Vxy_mean / self.Isd_mean**2) * self.Isd_std)**2
-        )
-
-    @cached_property
-    def rho_xy_mean(self) -> np.ndarray:
-        return self.Rxy_mean
-
-    @cached_property
-    def rho_xy_std(self) -> np.ndarray:
-        return self.Rxx_std
-
-    @cached_property
-    def Rxy_mean_by_klizing(self) -> np.ndarray:
-        return self.Rxy_mean / klitzing_constant
-
-    @cached_property
-    def Rxy_std_by_klizing(self) -> np.ndarray:
-        return self.Rxy_std / klitzing_constant
-
-    @staticmethod
-    def calc_density_mean(
-        magneticfield: t.Union[np.ndarray, int, float],
-        rho_xy_mean: np.ndarray,
-    ) -> np.ndarray:
-        return magneticfield / (e * rho_xy_mean)
-
-    @cached_property
-    def density_mean(self) -> np.ndarray:
-        return self.calc_density_mean(self.magneticfield, self.rho_xy_mean)
-
-    @staticmethod
-    def calc_density_std(
-        magneticfield: t.Union[np.ndarray, int, float],
-        rho_xy_mean: np.ndarray,
-        rho_xy_std: np.ndarray,
-    ) -> np.ndarray:
-        return magneticfield * rho_xy_std / (e * rho_xy_mean**2)
-
-    @cached_property
-    def density_std(self) -> np.ndarray:
-        return self.calc_density_std(
-            self.magneticfield,
-            self.rho_xy_mean,
-            self.rho_xy_std,
-        )
-
-    @staticmethod
-    def calc_mobility_mean(
-        magneticfield: t.Union[np.ndarray, int, float],
-        rho_xx_mean: np.ndarray,
-        rho_xy_mean: np.ndarray,
-    ) -> np.ndarray:
-        return rho_xy_mean / (magneticfield * rho_xx_mean)
-
-    @cached_property
-    def mobility_mean(self) -> np.ndarray:
-        return self.calc_mobility_mean(
-            self.magneticfield,
-            self.rho_xx_mean,
-            self.rho_xy_mean,
-        )
-
-    @staticmethod
-    def calc_mobility_std(
-        magneticfield: t.Union[np.ndarray, int, float],
-        rho_xx_mean: np.ndarray,
-        rho_xx_std: np.ndarray,
-        rho_xy_mean: np.ndarray,
-        rho_xy_std: np.ndarray,
-    ) -> np.ndarray:
-        return np.sqrt(
-            (rho_xy_std / (magneticfield * rho_xx_mean))**2 +
-            (rho_xy_mean * rho_xx_std / (magneticfield * rho_xx_mean**2))**2
-        )
-
-    @cached_property
-    def mobility_std(self) -> np.ndarray:
-        return self.calc_mobility_std(
-            self.magneticfield,
-            self.rho_xx_mean,
-            self.rho_xx_std,
-            self.rho_xy_mean,
-            self.rho_xy_std,
-        )
-
-    def crop_with(
-        self,
-        arr: np.ndarray,
-        min_: float,
-        max_: float,
-    ) -> _HallStatsData:
-        _check_min_max(min_, max_)
-        indices = _get_matching_range(arr, min_, max_)
-
-        if isinstance(self.magneticfield, (int, float)):
-            magneticfield = self.magneticfield
-        else:
-            magneticfield = self.magneticfield[indices]
-
-        return _HallStatsData(
-            self.Vxx[indices, :],
-            self.Vxy[indices, :],
-            magneticfield,
-            self.Isd[indices, :],
-            hallbar_ratio=self.hallbar_ratio,
-        )
-
-    def crop_Vxx_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self.crop_with(self.Vxx_mean, min_, max_)
-
-    def crop_Vxy_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self.crop_with(self.Vxy_mean, min_, max_)
-
-    def crop_Isd_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self.crop_with(self.Isd_mean, min_, max_)
-
-    def crop_Rxx_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self.crop_with(self.Rxx_mean, min_, max_)
-
-    def crop_Rxy_mean(self, min_: float, max_: float) -> _HallStatsData:
-        return self.crop_with(self.Rxy_mean, min_, max_)
-
-
-class HallMagneticStatsData(_HallStatsData):
+class Hall2Data(_HallData):
 
     @staticmethod
     def load_with_Vref(
         file_Vxx: t.Union[str, Path],
         file_Vxy: t.Union[str, Path],
-        file_magneticfield: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: t.Union[int, float],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallMagneticData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
-        return HallMagneticData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
+    ) -> Hall2Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall2Data(
+            Vxx,
             load_raw_data(file_Vxy, save_npy=save_npy),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Vref / resistance_ref,
+            magneticfield,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxx,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
     @staticmethod
     def load_xx_with_Vref(
         file_Vxx: t.Union[str, Path],
-        file_magneticfield: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: float,
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallMagneticData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
-        return HallMagneticData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            np.empty_like(Vref),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Vref / resistance_ref,
+    ) -> Hall2Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall2Data(
+            Vxx,
+            np.empty_like(Vxx),
+            magneticfield,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxx,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
     @staticmethod
     def load_xy_with_Vref(
         file_Vxy: t.Union[str, Path],
-        file_magneticfield: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
         resistance_ref: float,
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallMagneticData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
-        return HallMagneticData(
-            np.empty_like(Vref),
-            load_raw_data(file_Vxy, save_npy=save_npy),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Vref / resistance_ref,
-            hallbar_ratio=hallbar_ratio,
-        )
-
-    @staticmethod
-    def load_with_Isd(
-        file_Vxx: t.Union[str, Path],
-        file_Vxy: t.Union[str, Path],
-        file_magneticfield: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
-        hallbar_ratio: float = 0.25,
-        save_npy: bool = True,
-    ) -> HallMagneticData:
-        return HallMagneticData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            load_raw_data(file_Vxy, save_npy=save_npy),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            load_raw_data(file_Isd, save_npy=save_npy),
-            hallbar_ratio=hallbar_ratio,
-        )
-
-    @staticmethod
-    def load_xx_with_Isd(
-        file_Vxx: t.Union[str, Path],
-        file_magneticfield: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
-        hallbar_ratio: float = 0.25,
-        save_npy: bool = True,
-    ) -> HallMagneticData:
-        Isd = load_raw_data(file_Isd, save_npy=save_npy)
-        return HallMagneticData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            np.empty_like(Isd),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Isd,
-            hallbar_ratio=hallbar_ratio,
-        )
-
-    @staticmethod
-    def load_xy_with_Isd(
-        file_Vxy: t.Union[str, Path],
-        file_magneticfield: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
-        hallbar_ratio: float = 0.25,
-        save_npy: bool = True,
-    ) -> HallMagneticData:
-        Isd = load_raw_data(file_Isd, save_npy=save_npy)
-        return HallMagneticData(
-            np.empty_like(Isd),
-            load_raw_data(file_Vxy, save_npy=save_npy),
-            load_raw_data(file_magneticfield, save_npy=save_npy),
-            Isd,
-            hallbar_ratio=hallbar_ratio,
-        )
-
-    def __init__(
-        self,
-        Vxx: np.ndarray,
-        Vxy: np.ndarray,
-        magneticfield: np.ndarray,
-        Isd: np.ndarray,
-        hallbar_ratio: float = 0.25,
-    ) -> None:
-        super().__init__(
-            Vxx,
+    ) -> Hall2Data:
+        Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
+        return Hall2Data(
+            np.empty_like(Vxy),
             Vxy,
             magneticfield,
-            Isd,
-            hallbar_ratio=hallbar_ratio,
-        )
-
-    @property
-    def magneticfield(self) -> np.ndarray:
-        return self._magneticfield
-
-    def crop_with(
-        self,
-        arr: np.ndarray,
-        min_: float,
-        max_: float,
-    ) -> HallMagneticStatsData:
-        _check_min_max(min_, max_)
-        indices = _get_matching_range(arr, min_, max_)
-        return HallMagneticStatsData(
-            self.Vxx[indices, :],
-            self.Vxy[indices, :],
-            self.magneticfield[indices],
-            self.Isd[indices, :],
-            hallbar_ratio=self.hallbar_ratio,
-        )
-
-    def crop_Vxx_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self.crop_with(self.Vxx_mean, min_, max_)
-
-    def crop_Vxy_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self.crop_with(self.Vxy_mean, min_, max_)
-
-    def crop_Isd_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self.crop_with(self.Isd_mean, min_, max_)
-
-    def crop_Rxx_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self.crop_with(self.Rxx_mean, min_, max_)
-
-    def crop_Rxy_mean(self, min_: float, max_: float) -> HallMagneticStatsData:
-        return self.crop_with(self.Rxy_mean, min_, max_)
-
-
-class HallGateStatsData(_HallStatsData):
-
-    @staticmethod
-    def load_with_Vref(
-        file_Vxx: t.Union[str, Path],
-        file_Vxy: t.Union[str, Path],
-        magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
-        resistance_ref: t.Union[int, float],
-        hallbar_ratio: float = 0.25,
-        save_npy: bool = True,
-    ) -> HallGateData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
-        return HallGateData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            load_raw_data(file_Vxy, save_npy=save_npy),
-            magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Vref / resistance_ref,
-            hallbar_ratio=hallbar_ratio,
-        )
-
-    @staticmethod
-    def load_xx_with_Vref(
-        file_Vxx: t.Union[str, Path],
-        magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
-        resistance_ref: float,
-        hallbar_ratio: float = 0.25,
-        save_npy: bool = True,
-    ) -> HallGateData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
-        return HallGateData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            np.empty_like(Vref),
-            magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Vref / resistance_ref,
-            hallbar_ratio=hallbar_ratio,
-        )
-
-    @staticmethod
-    def load_xy_with_Vref(
-        file_Vxy: t.Union[str, Path],
-        magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
-        file_Vref: t.Union[str, Path],
-        resistance_ref: float,
-        hallbar_ratio: float = 0.25,
-        save_npy: bool = True,
-    ) -> HallGateData:
-        if resistance_ref <= 0:
-            raise ValueError("'resistance_ref' must be a positive number.")
-
-        Vref = load_raw_data(file_Vref, save_npy=save_npy)
-        return HallGateData(
-            np.empty_like(Vref),
-            load_raw_data(file_Vxy, save_npy=save_npy),
-            magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Vref / resistance_ref,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxy,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -1356,17 +827,20 @@ class HallGateStatsData(_HallStatsData):
         file_Vxx: t.Union[str, Path],
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
-        return HallGateData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
+    ) -> Hall2Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall2Data(
+            Vxx,
             load_raw_data(file_Vxy, save_npy=save_npy),
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            load_raw_data(file_Isd, save_npy=save_npy),
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            _load_Isd(Vxx, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -1374,18 +848,20 @@ class HallGateStatsData(_HallStatsData):
     def load_xx_with_Isd(
         file_Vxx: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
-        Isd = load_raw_data(file_Isd, save_npy=save_npy)
-        return HallGateData(
-            load_raw_data(file_Vxx, save_npy=save_npy),
-            np.empty_like(Isd),
+    ) -> Hall2Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall2Data(
+            Vxx,
+            np.empty_like(Vxx),
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Isd,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            _load_Isd(Vxx, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -1393,18 +869,20 @@ class HallGateStatsData(_HallStatsData):
     def load_xy_with_Isd(
         file_Vxy: t.Union[str, Path],
         magneticfield: t.Union[int, float],
-        file_gate_voltage: t.Union[str, Path],
-        file_Isd: t.Union[str, Path],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
         hallbar_ratio: float = 0.25,
         save_npy: bool = True,
-    ) -> HallGateData:
-        Isd = load_raw_data(file_Isd, save_npy=save_npy)
-        return HallGateData(
-            np.empty_like(Isd),
-            load_raw_data(file_Vxy, save_npy=save_npy),
+    ) -> Hall2Data:
+        Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
+        return Hall2Data(
+            np.empty_like(Vxy),
+            Vxy,
             magneticfield,
-            load_raw_data(file_gate_voltage, save_npy=save_npy),
-            Isd,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            _load_Isd(Vxy, data_Isd, save_npy=save_npy),
             hallbar_ratio=hallbar_ratio,
         )
 
@@ -1413,113 +891,381 @@ class HallGateStatsData(_HallStatsData):
         Vxx: np.ndarray,
         Vxy: np.ndarray,
         magneticfield: t.Union[int, float],
-        gate_voltage: np.ndarray,
+        axis0: np.ndarray,
+        axis1: np.ndarray,
         Isd: np.ndarray,
         hallbar_ratio: float = 0.25,
     ) -> None:
         """
         Args:
-            Vxx: Ndarray for Vxx.
-            Vxy: Ndarray for Vxy.
-            magneticfield: Ndarray for magnetic field.
-            Isd: Ndarray for source-drain current.
+            Vxx: 2-D array of Vxx.
+            Vxy: 2-D array of Vxy.
+            magneticfield: a constant value of magnetic field.
+            axis0: 1-D array of the axis 0.
+            axis1: 1-D array of the axis 1.
+            Isd: 2-D array of source-drain current.
             hallbar_ratio: Ratio (width / length) of a Hallbar.
 
         Notes:
-            All ndarray object must have same dimension and size.
-            `hallbar_ratio` needn't be substituted if your device
-            is not a Hallbar, but in this case, values of mobility
-            doesn't have meaning.
+            `hallbar_ratio` is not needed to be substituted if your device
+            is not a Hallbar, but in that case, values of mobility doesn't
+            have meaning.
         """
         super().__init__(
             Vxx,
             Vxy,
-            float(magneticfield),
+            magneticfield,
             Isd,
             hallbar_ratio=hallbar_ratio,
         )
-        self._gate_voltage = gate_voltage
+        self._axis0 = axis0
+        self._axis1 = axis1
 
-    @property
+    @cached_property
     def magneticfield(self) -> float:
-        return self._magneticfield
+        return float(self._magneticfield)
 
     @property
-    def gate_voltage(self) -> np.ndarray:
-        return self._gate_voltage
+    def axis0(self) -> np.ndarray:
+        return self._axis0
+
+    @property
+    def axis1(self) -> np.ndarray:
+        return self._axis1
 
     def crop_with(
         self,
         arr: np.ndarray,
         min_: float,
         max_: float,
-    ) -> HallGateStatsData:
+        axis: int,
+    ) -> Hall2Data:
         _check_min_max(min_, max_)
+
+        if axis not in {0, 1}:
+            raise ValueError("'axis' must be 0 or 1.")
+        elif axis == 0 and np.size(arr) != np.size(self.axis0):
+            raise ValueError("'arr' must be same size as axis0.")
+        elif axis == 1 and np.size(arr) != np.size(self.axis1):
+            raise ValueError("'arr' must be same size as axis1.")
+
         indices = _get_matching_range(arr, min_, max_)
-        return HallGateStatsData(
-            self.Vxx[indices, :],
-            self.Vxy[indices, :],
-            self.magneticfield,
-            self.gate_voltage[indices],
-            self.Isd[indices, :],
-            self.hallbar_ratio,
+        if axis == 0:
+            return Hall2Data(
+                self.Vxx[indices, :],
+                self.Vxy[indices, :],
+                self.magneticfield,
+                self.axis0[indices],
+                self.axis1,
+                self.Isd[indices, :],
+                self.hallbar_ratio,
+            )
+        else:
+            return Hall2Data(
+                self.Vxx[:, indices],
+                self.Vxy[:, indices],
+                self.magneticfield,
+                self.axis0,
+                self.axis1[indices],
+                self.Isd[:, indices],
+                self.hallbar_ratio,
+            )
+
+    def crop_axis0(self, min_: float, max_: float) -> Hall2Data:
+        return self.crop_with(self.axis0, min_, max_, 0)
+
+    def crop_axis1(self, min_: float, max_: float) -> Hall2Data:
+        return self.crop_with(self.axis1, min_, max_, 1)
+
+    def calc_corrected_density(self, offset: Hall2Data) -> np.ndarray:
+        return self.magneticfield / (e * (self.rho_xy - offset.rho_xy))
+
+    def calc_corrected_mobility(self, offset: Hall2Data) -> np.ndarray:
+        return (
+            (self.rho_xy - offset.rho_xy) / (self.magneticfield * self.rho_xx)
         )
 
-    def crop_Vxx_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self.crop_with(self.Vxx_mean, min_, max_)
 
-    def crop_Vxy_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self.crop_with(self.Vxy_mean, min_, max_)
+class Hall3Data(_HallData):
 
-    def crop_Isd_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self.crop_with(self.Isd_mean, min_, max_)
-
-    def crop_Rxx_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self.crop_with(self.Rxx_mean, min_, max_)
-
-    def crop_Rxy_mean(self, min_: float, max_: float) -> HallGateStatsData:
-        return self.crop_with(self.Rxy_mean, min_, max_)
-
-    def crop_gate_voltage(self, min_: float, max_: float) -> HallGateStatsData:
-        return self.crop_with(self.gate_voltage, min_, max_)
-
-    def calc_corrected_density_mean(
-        self,
-        offset: HallGateStatsData,
-    ) -> np.ndarray:
-        return self.calc_density_mean(
-            self.magneticfield,
-            self.rho_xy_mean - offset.rho_xy_mean,
+    @staticmethod
+    def load_with_Vref(
+        file_Vxx: t.Union[str, Path],
+        file_Vxy: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        file_axis2: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
+        resistance_ref: t.Union[int, float],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> Hall3Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall3Data(
+            Vxx,
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            magneticfield,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            load_raw_data(file_axis2, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxx,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
+            hallbar_ratio=hallbar_ratio,
         )
 
-    def calc_corrected_density_std(
-        self,
-        offset: HallGateStatsData,
-    ) -> np.ndarray:
-        return self.calc_density_std(
-            self.magneticfield,
-            self.rho_xy_mean - offset.rho_xy_mean,
-            np.sqrt(self.rho_xy_std**2 + offset.rho_xy_std**2),
+    @staticmethod
+    def load_xx_with_Vref(
+        file_Vxx: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        file_axis2: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
+        resistance_ref: float,
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> Hall3Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall3Data(
+            Vxx,
+            np.empty_like(Vxx),
+            magneticfield,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            load_raw_data(file_axis2, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxx,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
+            hallbar_ratio=hallbar_ratio,
         )
 
-    def calc_corrected_mobility_mean(
-        self,
-        offset: HallGateStatsData,
-    ) -> np.ndarray:
-        return self.calc_mobility_mean(
-            self.magneticfield,
-            self.rho_xx_mean,
-            self.rho_xy_mean - offset.rho_xy_mean,
+    @staticmethod
+    def load_xy_with_Vref(
+        file_Vxy: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        file_axis2: t.Union[str, Path],
+        data_Vref: t.Union[int, float, str, Path],
+        resistance_ref: float,
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> Hall3Data:
+        Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
+        return Hall3Data(
+            np.empty_like(Vxy),
+            Vxy,
+            magneticfield,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            load_raw_data(file_axis2, save_npy=save_npy),
+            _load_Isd_with_Vref(
+                Vxy,
+                data_Vref,
+                resistance_ref,
+                save_npy=save_npy,
+            ),
+            hallbar_ratio=hallbar_ratio,
         )
 
-    def calc_corrected_mobility_std(
+    @staticmethod
+    def load_with_Isd(
+        file_Vxx: t.Union[str, Path],
+        file_Vxy: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        file_axis2: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> Hall3Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall3Data(
+            Vxx,
+            load_raw_data(file_Vxy, save_npy=save_npy),
+            magneticfield,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            load_raw_data(file_axis2, save_npy=save_npy),
+            _load_Isd(Vxx, data_Isd, save_npy=save_npy),
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xx_with_Isd(
+        file_Vxx: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        file_axis2: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> Hall3Data:
+        Vxx = load_raw_data(file_Vxx, save_npy=save_npy)
+        return Hall3Data(
+            Vxx,
+            np.empty_like(Vxx),
+            magneticfield,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            load_raw_data(file_axis2, save_npy=save_npy),
+            _load_Isd(Vxx, data_Isd, save_npy=save_npy),
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    @staticmethod
+    def load_xy_with_Isd(
+        file_Vxy: t.Union[str, Path],
+        magneticfield: t.Union[int, float],
+        file_axis0: t.Union[str, Path],
+        file_axis1: t.Union[str, Path],
+        file_axis2: t.Union[str, Path],
+        data_Isd: t.Union[int, float, str, Path],
+        hallbar_ratio: float = 0.25,
+        save_npy: bool = True,
+    ) -> Hall3Data:
+        Vxy = load_raw_data(file_Vxy, save_npy=save_npy)
+        return Hall3Data(
+            np.empty_like(Vxy),
+            Vxy,
+            magneticfield,
+            load_raw_data(file_axis0, save_npy=save_npy),
+            load_raw_data(file_axis1, save_npy=save_npy),
+            load_raw_data(file_axis2, save_npy=save_npy),
+            _load_Isd(Vxy, data_Isd, save_npy=save_npy),
+            hallbar_ratio=hallbar_ratio,
+        )
+
+    def __init__(
         self,
-        offset: HallGateStatsData,
-    ) -> np.ndarray:
-        return self.calc_mobility_std(
-            self.magneticfield,
-            self.rho_xx_mean,
-            self.rho_xx_std,
-            self.rho_xy_mean - offset.rho_xy_mean,
-            np.sqrt(self.rho_xy_std**2 + offset.rho_xy_std**2),
+        Vxx: np.ndarray,
+        Vxy: np.ndarray,
+        magneticfield: t.Union[int, float],
+        axis0: np.ndarray,
+        axis1: np.ndarray,
+        axis2: np.ndarray,
+        Isd: np.ndarray,
+        hallbar_ratio: float = 0.25,
+    ) -> None:
+        """
+        Args:
+            Vxx: 3-D array of Vxx.
+            Vxy: 3-D array of Vxy.
+            magneticfield: a constant value of magnetic field.
+            axis0: 1-D array of the axis 0.
+            axis1: 1-D array of the axis 1.
+            axis2: 1-D array of the axis 2.
+            Isd: 3-D array of source-drain current.
+            hallbar_ratio: Ratio (width / length) of a Hallbar.
+
+        Notes:
+            `hallbar_ratio` is not needed to be substituted if your device
+            is not a Hallbar, but in that case, values of mobility doesn't
+            have meaning.
+        """
+        super().__init__(
+            Vxx,
+            Vxy,
+            magneticfield,
+            Isd,
+            hallbar_ratio=hallbar_ratio,
+        )
+        self._axis0 = axis0
+        self._axis1 = axis1
+        self._axis2 = axis2
+
+    @cached_property
+    def magneticfield(self) -> float:
+        return float(self._magneticfield)
+
+    @property
+    def axis0(self) -> np.ndarray:
+        return self._axis0
+
+    @property
+    def axis1(self) -> np.ndarray:
+        return self._axis1
+
+    @property
+    def axis2(self) -> np.ndarray:
+        return self._axis2
+
+    def crop_with(
+        self,
+        arr: np.ndarray,
+        min_: float,
+        max_: float,
+        axis: int,
+    ) -> Hall3Data:
+        _check_min_max(min_, max_)
+
+        if axis not in {0, 1, 2}:
+            raise ValueError("'axis' must be 0, 1 or 2.")
+        elif axis == 0 and np.size(arr) != np.size(self.axis0):
+            raise ValueError("'arr' must be same size as axis0.")
+        elif axis == 1 and np.size(arr) != np.size(self.axis1):
+            raise ValueError("'arr' must be same size as axis1.")
+        elif axis == 2 and np.size(arr) != np.size(self.axis2):
+            raise ValueError("'arr' must be same size as axis2.")
+
+        indices = _get_matching_range(arr, min_, max_)
+        if axis == 0:
+            return Hall3Data(
+                self.Vxx[indices, :, :],
+                self.Vxy[indices, :, :],
+                self.magneticfield,
+                self.axis0[indices],
+                self.axis1,
+                self.axis2,
+                self.Isd[indices, :, :],
+                self.hallbar_ratio,
+            )
+        elif axis == 1:
+            return Hall3Data(
+                self.Vxx[:, indices, :],
+                self.Vxy[:, indices, :],
+                self.magneticfield,
+                self.axis0,
+                self.axis1[indices],
+                self.axis2,
+                self.Isd[:, indices, :],
+                self.hallbar_ratio,
+            )
+        else:
+            Hall3Data(
+                self.Vxx[:, :, indices],
+                self.Vxy[:, :, indices],
+                self.magneticfield,
+                self.axis0,
+                self.axis1,
+                self.axis2[indices],
+                self.Isd[:, :, indices],
+                self.hallbar_ratio,
+            )
+
+    def crop_axis0(self, min_: float, max_: float) -> Hall3Data:
+        return self.crop_with(self.axis0, min_, max_, 0)
+
+    def crop_axis1(self, min_: float, max_: float) -> Hall3Data:
+        return self.crop_with(self.axis1, min_, max_, 1)
+
+    def crop_axis2(self, min_: float, max_: float) -> Hall3Data:
+        return self.crop_with(self.axis2, min_, max_, 2)
+
+    def calc_corrected_density(self, offset: Hall3Data) -> np.ndarray:
+        return self.magneticfield / (e * (self.rho_xy - offset.rho_xy))
+
+    def calc_corrected_mobility(self, offset: Hall3Data) -> np.ndarray:
+        return (
+            (self.rho_xy - offset.rho_xy) / (self.magneticfield * self.rho_xx)
         )
